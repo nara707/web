@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Registro - Stylo.io</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800;12..96,900&family=Bebas+Neue&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/registro.css">
+
+</head>
+<body>
+
+  <div class="wrapper">
+
+    <!-- Panel izquierdo -->
+    <div class="left">
+      <div class="left-top">
+        <div class="left-star">✦</div>
+        <h1 class="brand">STYLO<span>.IO</span></h1>
+      </div>
+
+      <div class="avatar-preview-wrap">
+        <div class="avatar-ring">
+          <div class="avatar-img" id="avatarPreviewWrap">
+            <img id="avatarPreviewImg" src="" alt="foto" />
+            <div class="avatar-placeholder" id="avatarPlaceholder">🌸</div>
+          </div>
+        </div>
+        <p class="avatar-name" id="previewName">Tu nombre</p>
+        <p class="avatar-email" id="previewEmail">tu@correo.com</p>
+      </div>
+
+      <div class="left-bottom">
+        <p class="tagline">Únete hoy</p>
+        <h2>Crea tu cuenta y empieza a explorar tu estilo</h2>
+      </div>
+    </div>
+
+    <!-- Panel derecho -->
+    <div class="right">
+      <div class="right-star">✦</div>
+      <h1>Crear cuenta</h1>
+      <p class="subtitle">Completa los campos para registrarte.</p>
+
+      <div class="fields-grid">
+
+        <!-- Nombre completo -->
+        <div class="field field-full" id="field-nombre">
+          <label for="nombre">nombre completo</label>
+          <div class="input-wrap">
+            <input type="text" id="nombre" placeholder="Ej. Ana García" oninput="validateNombre()" />
+            <span class="field-icon" id="icon-nombre"></span>
+          </div>
+        </div>
+
+        <!-- Correo -->
+        <div class="field" id="field-correo">
+          <label for="correo">correo electrónico</label>
+          <div class="input-wrap">
+            <input type="email" id="correo" placeholder="tu@correo.com" oninput="validateCorreo()" />
+            <span class="field-icon" id="icon-correo"></span>
+          </div>
+        </div>
+
+        <!-- Fecha de nacimiento -->
+        <div class="field" id="field-fecha">
+          <label for="fecha">fecha de nacimiento</label>
+          <div class="input-wrap">
+            <input type="date" id="fecha" oninput="validateFecha()" />
+            <span class="field-icon" id="icon-fecha"></span>
+          </div>
+        </div>
+
+        <!-- Contraseña -->
+        <div class="field field-full" id="field-pass">
+          <label for="pass">contraseña</label>
+          <div class="input-wrap">
+            <input type="password" id="pass" placeholder="Mínimo 6 caracteres"
+              style="padding-right:44px" oninput="validatePass()" />
+            <button class="toggle-pw" type="button" onclick="togglePassword()">👁</button>
+          </div>
+        </div>
+
+        <!-- Foto de usuario -->
+        <div class="field field-full">
+          <label>foto de perfil</label>
+          <div class="upload-area">
+            <input type="file" accept="image/*" id="fotoInput" onchange="handleFoto(event)" />
+            <div class="upload-thumb" id="uploadThumb">
+              <img id="thumbImg" src="" alt="" />
+              <span id="thumbIcon">📷</span>
+            </div>
+            <div class="upload-text">
+              <p id="uploadLabel">Sube tu foto de perfil</p>
+              <span id="uploadSub">JPG, PNG o WEBP · Máx 5MB</span>
+            </div>
+            <span class="upload-btn-label">Elegir</span>
+          </div>
+        </div>
+
+      </div>
+
+      <button class="btn-register" id="btn" onclick="handleRegister()">
+        <span class="btn-text">Crear cuenta</span>
+        <div class="spinner"></div>
+      </button>
+
+      <p class="login-link">¿Ya tienes una cuenta? <a href="log_in.html">Inicia sesión</a></p>
+    </div>
+
+    <div class="success-overlay" id="success">
+      <div class="check">🌸</div>
+      <p id="successMsg">¡Bienvenida a Stylo.io!</p>
+    </div>
+  </div>
+
+<script src="../js/registro.js"></script>
+
+</body>
+</html>

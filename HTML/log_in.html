@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800;12..96,900&family=Bebas+Neue&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+ <link rel="stylesheet" href="../css/log_in.css">
+
+</head>
+<body>
+
+  <div class="wrapper">
+
+    <!-- Panel izquierdo -->
+    <div class="left">
+      <div class="left-top">
+        <div class="left-star">✦</div>
+        <h1 class="brand">STYLO<span>.IO</span></h1>
+      </div>
+      <div class="left-bottom">
+        <p class="tagline">Bienvenido de vuelta</p>
+        <h2>Inicia sesión y continúa donde lo dejaste</h2>
+      </div>
+    </div>
+
+    <!-- Panel derecho -->
+    <div class="right">
+      <div class="right-star">✦</div>
+      <h1>Log In</h1>
+      <p class="subtitle">Ingresa tus datos para acceder a tu cuenta.</p>
+
+      <div class="field" id="field-email">
+        <label for="email">correo electronico / usuario</label>
+        <div class="input-wrap">
+          <input type="text" id="email" autocomplete="username" oninput="validateEmail()" />
+          <span class="field-icon" id="icon-email"></span>
+        </div>
+      </div>
+
+      <div class="field" id="field-password">
+        <label for="password">contraseña</label>
+        <div class="input-wrap">
+          <input type="password" id="password" autocomplete="current-password"
+            style="padding-right:44px" oninput="validatePassword()" />
+          <button class="toggle-pw" type="button" onclick="togglePassword()">👁</button>
+        </div>
+      </div>
+
+      <p class="forgot"><a href="#">¿Olvidaste tu contraseña?</a></p>
+
+      <button class="btn-signin" id="btn" onclick="handleLogin()">
+        <span class="btn-text">sign in</span>
+        <div class="spinner"></div>
+      </button>
+
+      <div class="divider">o continúa con</div>
+
+      <div class="social-row">
+        <button class="social-btn">G Google</button>
+        <button class="social-btn">f Facebook</button>
+        <button class="social-btn">in LinkedIn</button>
+      </div>
+
+      <p class="register">¿No tienes una cuenta? <a href="registro.html">Crea una cuenta</a></p>
+    </div>
+
+    <div class="success-overlay" id="success">
+      <div class="check">🌸</div>
+      <p>¡Bienvenido de vuelta!</p>
+    </div>
+  </div>
+
+    <script src="../js/log_in.js"></script>
+
+</body>
+</html>
