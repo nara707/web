@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canasta de compras</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800;12..96,900&family=Bebas+Neue&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+
+    <link rel="stylesheet" href="../CSS/Basket.css">
+</head>
+<body>
+  
+    <!-- NAVBAR -->
+    <nav>
+        <a class="nav-logo" href="#">STYLO<span>.IO</span></a>
+        <div class="nav-search">
+        <input type="text" placeholder="Busca artistas, estilos..." />
+    <span class="nav-search-icon material-symbols-outlined">search</span>
+        </div>
+        <div class="nav-links">
+        <a href="landing.html">Explora</a>
+        <a href="landing.html">Categorías</a>
+        <a href="Basket.html">Canasta</a>
+        <a href="perfil.html">Perfil</a>
+        </div>
+    </nav>
+
+    <!--Basket-->
+    <main class="main">
+        <div class="inner-main">
+            <div class="stars">
+                <h2>Basket</h2><div class="left-star">✦</div> <div class="left2-star">✦</div> 
+                
+            </div>
+            <h4>Historial de Compras</h4>
+
+            <div class="basket-container">
+                 <!-- Basket item 1 -->
+                <div class="basket-item">
+                    <section>
+                        <img src="../MULTIMEDIA/adventure_time.jpg" alt="">
+                    </section>
+                    <aside>
+                        <h2>Nombre del artista</h2>
+                        <h4>Descripción</h4>
+                        <h4>$$$$$</h4>
+                        <button class="cancel-btn">
+                            <span class="material-symbols-outlined">delete</span> Cancelar
+                        </button>
+                    </aside>
+                </div>
+
+                <!-- Basket item 2 -->
+                <div class="basket-item" style="background-color: #F7B3FF;">
+                    <section>
+                        <img src="../MULTIMEDIA/adventure_time.jpg" alt="">
+                    </section>
+                    <aside>
+                        <h2>Nombre del artista</h2>
+                        <h4 style="color: white;">Descripción</h4>
+                        <h4 style="color: white;">$$$$$</h4>
+                        <button class="cancel-btn">
+                            <span class="material-symbols-outlined">delete</span> Cancelar
+                        </button>
+                    </aside>
+                </div>
+
+                <!-- Basket item 3 -->
+                <div class="basket-item">
+                    <section>
+                        <img src="../MULTIMEDIA/adventure_time.jpg" alt="">
+                    </section>
+                    <aside>
+                        <h2>Nombre del artista</h2>
+                        <h4>Descripción</h4>
+                        <h4>$$$$$</h4>
+                        <button class="cancel-btn">
+                            <span class="material-symbols-outlined">delete</span> Cancelar
+                        </button>
+                    </aside>
+                </div>
+            </div><!--Basket container-->
+            <!--BOTON DE PAGAR-->
+        <button class="pagar" id="payButton">Pagar</button>
+        </div><!--Inner main-->
+        
+    </main>
+
+     <!-- MODAL -->
+    <div class="modal-overlay" id="paymentModal">
+        <div class="modal-box">
+            <p>El pago se realizó exitosamente</p>
+            <button id="modalAcceptBtn">Aceptar</button>
+        </div>
+    </div>
+    <script src="../JS/basket.js"></script>
+</body>
+</html>

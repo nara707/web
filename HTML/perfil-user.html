@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil de Usuario</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800;12..96,900&family=Bebas+Neue&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+
+    <link rel="stylesheet" href="../CSS/perfil-user.css">
+</head>
+<body>
+  <!-- contenedor de estrellas -->
+  <div id="star-container" style="position:fixed; inset:0; pointer-events:none; z-index:0;"></div>
+
+  <!-- NAVBAR -->
+  <nav>
+    <a class="nav-logo" href="landing.html">STYLO<span>.IO</span></a>
+    <div class="nav-search">
+      <input type="text" placeholder="Busca artistas, estilos..." />
+      <span class="nav-search-icon material-symbols-outlined">search</span>
+    </div>
+    <div class="nav-links">
+      <a href="landing.html">Explorar</a>
+      <a href="landing.html">Categorías</a>
+      <a href="Basket.html">Canasta</a>
+      <a href="perfil.html" class="nav-cta">Perfil</a>
+    </div>
+  </nav>
+
+  <!-- BANNER PERFIL con avatar grande -->
+  <div class="banner">
+    <div class="banner-content">
+      <div class="large-avatar"></div>
+    </div>
+  </div>
+
+  <!-- TABS (Publications-compradas / likes / Basket) -->
+  <div class="tabs-container">
+    <button class="tab active" id="tab-publications">Compras</button>
+    <button class="tab" id="tab-likes">Likes</button>
+    <button class="tab" id="tab-basket">Canasta</button>
+  </div>
+
+  <!-- MAIN LAYOUT: sidebar + contenido -->
+  <div class="main-layout">
+    <!-- SIDEBAR FILTER (beige) -->
+    <aside class="filter-card">
+      <div class="filter-section">
+        <h4>Nombre</h4>
+        <div class="tag-group">
+          <span class="filter-tag">Animator</span>
+          <span class="filter-tag">Illustrations</span>
+          <span class="filter-tag">Emotes</span>
+        </div>
+      </div>
+      
+      <div class="filter-section">
+        <h4>Description</h4>
+        <div class="description-text">
+          “I like drawing cute little things specially tiny humans”
+        </div>
+      </div>
+    </aside>
+
+    <!-- chips de filtro y grid-->
+    <section class="right-panel">
+      <!-- FILTER CHIPS -->
+      <!-- FILTER CHIPS ROW (main) -->
+        <div class="filter-chips-row" id="filterChipsRow">
+            <span class="chip-filter active" data-filter="categories">Categorías</span>
+            <span class="chip-filter" data-filter="date">Fecha</span>
+            <span class="chip-filter" data-filter="likes">Likes</span>
+        </div>
+
+        <!-- SUBFILTER ROW (hidden by default, appears when Categorías is active) -->
+        <div class="filter-chips-row" id="subfilterRow" style="display: none;">
+            <span class="chip-filter active" data-filter="all">Todo</span>
+            <span class="chip-filter" data-filter="ilustracion">Ilustración</span>
+            <span class="chip-filter" data-filter="moda">Moda</span>
+            <span class="chip-filter" data-filter="foto">Fotografía</span>
+            <span class="chip-filter" data-filter="diseño">Diseño</span>
+            <span class="chip-filter" data-filter="tatuajes">Tatuajes</span>
+        </div>
+
+      <!-- GRID DE CARDS -->
+      <div class="cards-grid" id="cardsGrid"></div>
+    </section>
+  </div>
+
+  <div class="footer-note">✨ artistas independientes · comisiones seguras</div>
+
+  <script src="../JS/perfil-user.js"></script>
+  <!-- iconos de material se vean -->
+  <style>
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .art-card-save { font-size: 1.2rem; background: rgba(255,255,255,0.9); border: none; }
+    .art-card-save.saved { background:linear-gradient(135deg,#d899e8 0%,#e8a8d8 35%,#f0c8a0 70%,#f5dca0 100%); color: white; }
+  </style>
+</body>
+</html>

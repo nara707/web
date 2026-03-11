@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Publicación</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800;12..96,900&family=Bebas+Neue&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    <link rel="stylesheet" href="../CSS/CrearPublicacion.css">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav>
+        <a class="nav-logo" href="#">STYLO<span>.IO</span></a>
+        <div class="nav-search">
+            <input type="text" placeholder="Busca artistas, estilos..." />
+            <span class="nav-search-icon material-symbols-outlined">search</span>
+        </div>
+        <div class="nav-links">
+            <a href="landing.html">Explora</a>
+            <a href="landing.html">Categorías</a>
+            <a href="Basket.html">Canasta</a>
+            <a href="perfil.html">Perfil</a>
+        </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="main">
+        <div class="stars">
+            <span class="material-symbols-outlined arrow-icon" id="backArrow" style="cursor: pointer;">arrow_back</span>
+            <h1>Crea una Publicación</h1>
+            <div class="left-star">✦</div>
+            <div class="left2-star">✦</div>
+        </div>
+
+        <div class="inner-main">
+            <!-- IMAGENES: previsualización única -->
+            <article class="left-side">
+                <div class="image-preview" id="imagePreview">
+                    <div class="preview-placeholder" id="previewPlaceholder">Vista previa</div>
+                    <img id="previewImage" src="" alt="Vista previa" style="display: none;">
+                </div>
+                <div class="load-btn-container">
+                    <button class="load" type="button" id="loadImagesBtn">Cargar imágenes</button>
+                </div>
+            </article>
+
+            <!-- FORMULARIO -->
+            <aside class="publicacion">
+                <form id="postForm">
+                    <label for="titulo">Título</label>
+                    <input type="text" id="titulo" required>
+
+                    <label for="artista">Artista</label>
+                    <input type="text" id="artista" required>
+
+                    <label for="categoria">Categoría</label>
+                    <div class="select-wrapper">
+                        <select id="categoria" required>
+                            <option value="">Selecciona una Categoría</option>
+                            <option value="ilustracion">Ilustración</option>
+                            <option value="moda">Moda</option>
+                            <option value="foto">Fotografía</option>
+                            <option value="diseño">Diseño</option>
+                            <option value="tatuajes">Tatuajes</option>
+                        </select>
+                    </div>
+
+                    <label for="descripcion">Descripción</label>
+                    <input type="text" id="descripcion" required>
+
+                    <label for="terminos">Términos y condiciones</label>
+                    <input type="text" id="terminos" required>
+
+                    <label for="precio">Precio ($)</label>
+                    <input type="number" id="precio" min="0" step="0.01" required>
+
+                    <label for="metodoPago">Método de pago</label>
+                    <div class="select-wrapper">
+                        <select id="metodoPago" required>
+                            <option value="">Selecciona un método</option>
+                            <option value="Tarjeta de crédito">Tarjeta de crédito</option>
+                            <option value="Tarjeta de débito">Tarjeta de débito</option>
+                            <option value="PayPal">PayPal</option>
+                        </select>
+                    </div>
+                </form>
+                <button class="aceptar" id="acceptBtn">Aceptar</button>
+            </aside>
+        </div>
+    </main>
+
+    <!-- Input oculto para seleccionar archivos -->
+    <input type="file" id="file-input" accept="image/*" multiple hidden>
+
+    <script src="../JS/CrearPublicacion.js"></script>
+</body>
+</html>
