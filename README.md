@@ -22,3 +22,13 @@ transacciones monetarias en linea.
         Contiene todos los archivos de formato .html del proyecto
   ° JS
         Contiene todos los archivos de formato .js del proyecto
+
+==========                        ==========
+========  Dependencias instaladas:  ========
+=========                        ===========
+  ° express
+        framework principal para el servidor web
+  ° multer
+        middleware para manejar archivos
+  ° mysql2
+        controlador para conectarse a la base de datos
