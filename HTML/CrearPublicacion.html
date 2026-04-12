@@ -6,6 +6,7 @@
     <title>Crear Publicación</title>
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800;12..96,900&family=Bebas+Neue&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="../CSS/CrearPublicacion.css">
 </head>
 <body>
@@ -52,19 +53,9 @@
                     <label for="titulo">Título</label>
                     <input type="text" id="titulo" required>
 
-                    <label for="artista">Artista</label>
-                    <input type="text" id="artista" required>
-
                     <label for="categoria">Categoría</label>
                     <div class="select-wrapper">
-                        <select id="categoria" required>
-                            <option value="">Selecciona una Categoría</option>
-                            <option value="ilustracion">Ilustración</option>
-                            <option value="moda">Moda</option>
-                            <option value="foto">Fotografía</option>
-                            <option value="diseño">Diseño</option>
-                            <option value="tatuajes">Tatuajes</option>
-                        </select>
+                        <select id="categoria" required></select>
                     </div>
 
                     <label for="descripcion">Descripción</label>

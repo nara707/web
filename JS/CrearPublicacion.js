@@ -1,4 +1,6 @@
-(function() {
+
+(function () {
+
     // Elementos del DOM
     const fileInput = document.getElementById('file-input');
     const loadBtn = document.getElementById('loadImagesBtn');
@@ -21,9 +23,9 @@
     });
 
     // Manejar selección de archivos
-    fileInput.addEventListener('change', function(e) {
+    fileInput.addEventListener('change', function (e) {
         const files = Array.from(e.target.files);
-        
+
         // Validar máximo 3 imágenes (aunque solo mostremos una, permitimos hasta 3)
         if (files.length > 3) {
             alert('Solo puedes subir hasta 3 imágenes.');
@@ -57,18 +59,50 @@
         }
     });
 
+    // --- Cargar categorías dinámicamente ---
+    async function cargarCategorias() {
+        try {
+            const response = await fetch('/categorias');
+            const categorias = await response.json();
+
+            const selectCategoria = document.getElementById('categoria');
+
+            // Opción por defecto
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Selecciona una categoría';
+            defaultOption.disabled = true;
+            defaultOption.selected = true;
+            selectCategoria.appendChild(defaultOption);
+
+            // Llenar con las categorías de la BD
+            categorias.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.ID_Categoria;
+                option.textContent = cat.Nombre;
+                option.dataset.nombre = cat.Nombre;
+                selectCategoria.appendChild(option);
+            });
+
+        } catch (error) {
+            console.error('Error al cargar categorías:', error);
+            alert('No se pudieron cargar las categorías. Intenta de nuevo.');
+        }
+    }
+
+    cargarCategorias();
+
     // Manejar botón Aceptar
-    acceptBtn.addEventListener('click', () => {
-        // Validar campos del formulario
+    acceptBtn.addEventListener('click', async () => {
         const titulo = document.getElementById('titulo').value.trim();
-        const artista = document.getElementById('artista').value.trim();
-        const categoria = document.getElementById('categoria').value;
+        const categoriaSelect = document.getElementById('categoria');
+        const id_categoria = categoriaSelect.value;
         const descripcion = document.getElementById('descripcion').value.trim();
         const terminos = document.getElementById('terminos').value.trim();
         const precio = document.getElementById('precio').value.trim();
         const metodoPago = document.getElementById('metodoPago').value;
 
-        if (!titulo || !artista || !categoria || !descripcion || !terminos || !precio || !metodoPago) {
+        if (!titulo || !id_categoria || !descripcion || !terminos || !precio || !metodoPago) {
             alert('Por favor completa todos los campos del formulario.');
             return;
         }
@@ -78,35 +112,59 @@
             return;
         }
 
-        // Tomar la primera imagen como representativa
-        const firstFile = selectedFiles[0];
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const imageDataUrl = e.target.result;
+        try {
 
-            // Crear objeto de la publicación
-            const newPost = {
-                title: titulo,
-                artist: `@${artista.replace(/\s+/g, '').toLowerCase()}`,
-                category: categoria.toLowerCase(),
-                price: `$${parseFloat(precio).toFixed(2)}`,
-                catLabel: categoria,
-                date: new Date().toISOString().slice(0,10),
-                likes: '0',
-                image: imageDataUrl,
-                description: descripcion,
-                terms: terminos,
-                paymentMethod: metodoPago
-            };
+            formData = new FormData();
 
-            // Guardar en localStorage
-            const pendingPosts = JSON.parse(localStorage.getItem('pendingPosts') || '[]');
-            pendingPosts.push(newPost);
-            localStorage.setItem('pendingPosts', JSON.stringify(pendingPosts));
+            const usuario = JSON.parse(sessionStorage.getItem("usuario"));
 
-            alert('Publicación creada con éxito.');
-            window.location.href = 'perfil.html';
-        };
-        reader.readAsDataURL(firstFile);
+            formData.append("id_usuario", usuario.id);
+
+            formData.append('titulo', titulo);
+            formData.append('descripcion', descripcion);
+            formData.append('precio', precio);
+            formData.append('terminos', terminos);
+            formData.append('id_categoria', id_categoria);
+            formData.append('metodo_pago', metodoPago);
+            formData.append('imagen', selectedFiles[0]); // Imagen principal
+
+
+
+            const response = await fetch('/publicaciones/crear', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                await Swal.fire({
+                    icon: 'success',
+                    title: '¡Publicación creada!',
+                    text: 'Tu publicación se creó con éxito.',
+                    timer: 2500,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    color: '#3a0a5a',
+                    iconColor: '#b05ad0',
+                    confirmButtonColor: '#b05ad0'
+                });
+                window.close(); // cierra la ventana emergente
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.msg,
+                    confirmButtonColor: '#b05ad0',
+                    color: '#3a0a5a'
+                });
+            }
+
+        } catch (error) {
+            console.error('Error al crear publicación:', error);
+            alert('Hubo un problema al crear la publicación.');
+        }
     });
+
 })();
+
