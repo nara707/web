@@ -129,10 +129,10 @@ async function handleRegister() {
   const c = validateCorreo();
   const f = validateFecha();
   const p = validatePass();
-  
-  if (!n || !c || !f || !p) { 
-    shake(); 
-    return; 
+
+  if (!n || !c || !f || !p) {
+    shake();
+    return;
   }
 
   const btn = document.getElementById('btn');
@@ -144,38 +144,41 @@ async function handleRegister() {
   formData.append('correo', document.getElementById('correo').value);
   formData.append('contrasena', document.getElementById('pass').value);
   formData.append('fecha_nacimiento', document.getElementById('fecha').value);
-  formData.append('biografia', 'Nueva cuenta de Stylo.io'); 
+  formData.append('biografia', 'Nueva cuenta de Stylo.io');
   formData.append('foto', document.getElementById('fotoInput').files[0]);
 
   try {
     // Petición al servidor
     const response = await fetch('http://localhost:3001/usuario/registrar', {
       method: 'POST',
-      body: formData 
+      body: formData
     });
 
     const data = await response.json();
 
     if (data.msg === "Registrado") {
+      // Guardar info del usuario en sessionStorage para usarla después
+      sessionStorage.setItem("usuario", JSON.stringify(data.info));
+
       // Mostrar éxito y Redirigir
       document.getElementById('successMsg').textContent = `¡Bienvenid@, ${data.info.nombre}!`;
       document.getElementById('success').classList.add('show');
-    
+
       setTimeout(() => {
         window.location.href = '/landing'; // Ruta  definida en rutas.js
       }, 2000);
 
     } else {
-     Swal.fire({
+      Swal.fire({
         title: 'Error',
         text: data.msg || 'Hubo un problema al registrar',
         icon: 'error'
       });
     }
   } catch (error) {
-   console.error("Error:", error);
+    console.error("Error:", error);
     Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
-  
+
   } finally {
     btn.classList.remove('loading');
   }

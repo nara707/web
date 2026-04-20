@@ -1,3 +1,21 @@
+//Funcion para actualizar el navbar
+actualizarNavbar();// Navbar dinámico
+function actualizarNavbar() {
+  const usuario = sessionStorage.getItem('usuario');
+  const navLinks = document.querySelector('.nav-links');
+
+  if (usuario) {
+    navLinks.innerHTML = `
+      <a href="/landing">Explora</a>
+      <a href="/landing#categorias">Categorías</a>
+      <a href="/basket">Canasta</a>
+      <a href="/mi-perfil">Perfil</a>
+    `;
+  }
+}
+
+actualizarNavbar();
+
 (function() {
             // 1. Cancel buttons: remove the parent <aside>
             const cancelButtons = document.querySelectorAll('.cancel-btn');
