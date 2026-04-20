@@ -112,6 +112,7 @@ CHANGE FechaNacimiento fecha_nacimiento DATE;
 
 
 select * from Usuario;
+select * from publicaciones;
 
 INSERT INTO categorias (Nombre) VALUES ('Ilustracion'), ('Moda'), ('Fotografia'), ('Diseño'), ('Tatuajes'),('Animacion'),('Diseño de Personajes') ;
 
@@ -121,3 +122,5 @@ CHANGE URL_Imagen URL_Imagen LONGTEXT;
 ALTER TABLE publicaciones 
 ADD COLUMN ID_Categoria INT,
 ADD COLUMN MetodoPago VARCHAR(50);
+
+-- modificacion de la tabla de usuario y nuevas tablas relacionadas --
