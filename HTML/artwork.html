@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Obra — Stylo.io</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800;12..96,900&family=Bebas+Neue&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+  <link rel="stylesheet" href="../css/artwork.css">
+
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav>
+    <a class="nav-logo" href="landing.html">STYLO<span>.IO</span></a>
+    <a class="nav-back" href="landing.html">
+      <span class="material-symbols-outlined">arrow_back</span>
+      Volver al inicio
+    </a>
+    <div class="nav-links">
+      <a href="index.html#como-funciona">Cómo funciona</a>
+      <a href="index.html#categorias">Categorías</a>
+      <a href="login.html">Iniciar sesión</a>
+      <a href="registro.html" class="nav-cta">Únete gratis</a>
+    </div>
+  </nav>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <div class="page">
+
+    <!-- IZQUIERDA: imagen -->
+    <div class="artwork-left">
+      <div class="artwork-img-wrap">
+        <!-- Reemplaza este div con un <img> cuando tengas la imagen real -->
+        <div class="artwork-img"></div>
+
+        <div class="artwork-img-actions">
+          <button class="img-action-btn" id="likeBtn" onclick="toggleLike()" title="Me gusta">
+            <span class="material-symbols-outlined">favorite</span>
+          </button>
+          <button class="img-action-btn" title="Guardar">
+            <span class="material-symbols-outlined">bookmark</span>
+          </button>
+          <button class="img-action-btn" title="Compartir">
+            <span class="material-symbols-outlined">share</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="artwork-likes">
+        <span class="likes-count" id="likesCount">248</span>
+        <span class="likes-label">personas guardaron esta obra</span>
+        <div class="likes-avatars">
+          <div class="like-av" style="background:linear-gradient(135deg,#d899e8,#b05ad0)">🌸</div>
+          <div class="like-av" style="background:linear-gradient(135deg,#f0c8a0,#c87ce8)">✨</div>
+          <div class="like-av" style="background:linear-gradient(135deg,#e8d87a,#f0c8a0)">🎨</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DERECHA: info -->
+    <div class="artwork-right">
+
+      <!-- breadcrumb -->
+      <div class="breadcrumb">
+        <a href="index.html">Inicio</a>
+        <span class="material-symbols-outlined">chevron_right</span>
+        <a href="index.html#categorias">Ilustración</a>
+        <span class="material-symbols-outlined">chevron_right</span>
+        <span>Serie Onírica No.7</span>
+      </div>
+
+      <!-- título -->
+      <h1 class="artwork-title">Serie Onírica No.7</h1>
+
+      <!-- tags -->
+      <div class="tags-row">
+        <span class="tag cat-tag">✏️ Ilustración</span>
+        <span class="tag">#digital</span>
+        <span class="tag">#surrealismo</span>
+        <span class="tag">#colorful</span>
+        <span class="tag">#portafolio</span>
+      </div>
+
+      <!-- artista -->
+      <a class="artist-card" href="#">
+        <div class="artist-avatar">🌸</div>
+        <div class="artist-info">
+          <div class="artist-name">Valeria Montes</div>
+          <div class="artist-handle">@valeria.draws</div>
+          <div class="artist-stats">
+            <div class="artist-stat"><span>142</span> obras</div>
+            <div class="artist-stat"><span>4.9★</span> valoración</div>
+            <div class="artist-stat"><span>98%</span> respuesta</div>
+          </div>
+        </div>
+        <div class="artist-arrow"><span class="material-symbols-outlined">arrow_forward</span></div>
+      </a>
+
+      <div class="divider"></div>
+
+      <!-- descripción -->
+      <div class="desc-block">
+        <p class="block-label">Sobre esta obra</p>
+        <p class="desc-text collapsed" id="descText">
+          "Serie Onírica" es una colección de ilustraciones digitales inspiradas en los estados entre el sueño y la vigilia. Cada pieza explora la fragmentación de la memoria a través de paletas vibrantes y formas que desafían la lógica espacial. Esta obra en particular, No.7, representa el momento en que los recuerdos de infancia se mezclan con la percepción adulta del tiempo — una dualidad expresada mediante la superposición de texturas analógicas y técnicas vectoriales contemporáneas.
+        </p>
+        <span class="read-more" id="readMore" onclick="toggleDesc()">Leer más</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- precio y CTA -->
+      <div class="price-block">
+        <div class="price-row">
+          <span class="price-label">Precio de comisión</span>
+          <span class="price-badge">✓ Disponible</span>
+        </div>
+        <div class="price-amount">$45 USD</div>
+        <p class="price-note">Entrega estimada: 5–7 días hábiles · Revisiones incluidas: 2</p>
+
+        <button class="btn-comisionar" onclick="window.location.href='comisionar.html'">
+          <span class="material-symbols-outlined">brush</span>
+          Comisionar esta obra
+        </button>
+        <button class="btn-mensaje">
+          <span class="material-symbols-outlined">chat_bubble</span>
+          Enviar mensaje al artista
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="foot-logo">STYLO<span>.IO</span></div>
+    <div class="foot-links">
+      <a href="#">Términos</a>
+      <a href="#">Privacidad</a>
+      <a href="#">Contacto</a>
+    </div>
+    <p>© 2025 Stylo.io</p>
+  </footer>
+
+    <script src="../js/artwork.js"></script>
+
+
+</body>
+</html>

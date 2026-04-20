@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Comisionar — Stylo.io</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800;12..96,900&family=Bebas+Neue&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+  <link rel="stylesheet" href="../css/landing.css">
+    <link rel="stylesheet" href="../css/comisionar.css">
+</head>
+<body>
+
+  <div class="modal">
+
+    <button class="modal-close" onclick="window.history.back()">
+   <button class="modal-close" onclick="window.location.href='artwork.html'">
+  <span class="material-symbols-outlined">close</span>
+</button>
+    <!-- ARTISTA -->
+    <p class="section-label">Artista</p>
+    <div class="artist-row">
+      <div class="artist-av">🌸</div>
+      <div class="artist-name-wrap">
+        <span class="artist-username">Nombre de usuario</span>
+        <div class="input-arrow-wrap">
+          <input class="artist-name-input" type="text" id="artistInput" placeholder="@valeria.draws" />
+          <span class="input-arrow"><span class="material-symbols-outlined">arrow_forward</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DETALLES -->
+    <p class="section-label">Detalles de la comisión</p>
+    <div class="details-grid">
+
+      <div class="field" id="field-estilo">
+        <label>Estilo</label>
+        <select id="estilo" onchange="validateField('field-estilo','estilo')">
+          <option value="" disabled selected>Selecciona un estilo</option>
+          <option>Realismo</option>
+          <option>Cartoon / Caricatura</option>
+          <option>Anime / Manga</option>
+          <option>Abstracto</option>
+          <option>Minimalista</option>
+          <option>Surrealismo</option>
+          <option>Otro</option>
+        </select>
+      </div>
+
+      <div class="field" id="field-formato">
+        <label>Formato</label>
+        <select id="formato" onchange="validateField('field-formato','formato')">
+          <option value="" disabled selected>Selecciona un formato</option>
+          <option>Digital (PNG/JPG)</option>
+          <option>Digital (PDF vectorial)</option>
+          <option>Impreso tamaño carta</option>
+          <option>Impreso tamaño A3</option>
+          <option>Mural (presencial)</option>
+          <option>Otro</option>
+        </select>
+      </div>
+
+      <div class="field field-full" id="field-precio">
+        <label>Presupuesto</label>
+        <div class="price-wrap">
+          <span class="price-prefix">$</span>
+          <input class="price-input" type="number" id="precio" placeholder="Ej. 50" min="1" oninput="validateField('field-precio','precio')" />
+        </div>
+      </div>
+
+      <div class="field field-full" id="field-desc">
+        <label>Descripción</label>
+        <textarea id="desc" placeholder="Describe tu idea, referencias de estilo, colores, personajes..." oninput="validateField('field-desc','desc')"></textarea>
+      </div>
+
+    </div>
+
+    <div class="form-footer">
+      <p class="form-note">Al comisionar aceptas los <span>términos de Stylo.io</span>. El pago se libera al artista cuando apruebes la entrega.</p>
+      <button class="btn-comisionar" id="submitBtn" onclick="handleSubmit()">
+        <span class="btn-text">Comisionar</span>
+        <span class="material-symbols-outlined btn-text">arrow_forward</span>
+        <div class="spinner"></div>
+      </button>
+    </div>
+
+    <!-- Success -->
+    <div class="success-overlay" id="success">
+      <div class="check">🌸</div>
+      <p>¡Comisión enviada!</p>
+      <span>El artista recibirá tu solicitud pronto.</span>
+    </div>
+
+  </div>
+
+<script src="../js/comisionar.js"></script>
+
+</body>
+</html>
