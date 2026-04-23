@@ -188,7 +188,8 @@ cargarPerfil();
                 ? `background-image:url('${card.image}');background-size:cover;background-position:center;`
                 : `background:linear-gradient(145deg,#c87ce8,#e8d87a);`;
             return `
-                <div class="art-card" data-category="${card.category}">
+    <div class="art-card" data-category="${card.category}" style="cursor:pointer;"
+         onclick="window.location.href='/artwork?id=${card.id}'">
                     <div class="art-card-ph" style="${bg}"></div>
                     <div class="art-card-overlay">
                         <div class="art-card-likes">💗 ${card.likes}</div>

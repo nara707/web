@@ -1,7 +1,7 @@
-const usuario = JSON.parse(sessionStorage.getItem("usuario"));
-console.log(usuario.nombre);
+// const usuario = JSON.parse(sessionStorage.getItem("usuario"));
+// console.log(usuario.nombre);
 
-actualizarNavbar();// Navbar dinámico
+// actualizarNavbar();// Navbar dinámico
 function actualizarNavbar() {
   const usuario = sessionStorage.getItem('usuario');
   const navLinks = document.querySelector('.nav-links');
@@ -16,10 +16,9 @@ function actualizarNavbar() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   actualizarNavbar();
-  cargarHero();
-  cargarCategorias();
+  await Promise.all([cargarHero(), cargarCategorias()]);
   renderGrid('all');
 });
 
@@ -91,25 +90,23 @@ async function renderGrid(categoria = 'all') {
 
     grid.innerHTML = '';
 
-    data.forEach(pub => {
-      grid.innerHTML += `
-        <div class="art-card">
-          <div class="art-card-ph"
-            style="height:200px;
-            background-image:url('data:image/jpeg;base64,${pub.URL_Imagen}');
-            background-size:cover;
-            background-position:center;">
-          </div>
-
-          <div class="art-card-overlay">
-            <div class="art-card-artist">${pub.Titulo}</div>
-            <div class="art-card-cat">Categoría ${pub.ID_Categoria}</div>
-          </div>
-
-          <div class="art-card-price">$${pub.Precio}</div>
-        </div>
-      `;
-    });
+  data.forEach(pub => {
+  grid.innerHTML += `
+    <div class="art-card" style="cursor:pointer;" onclick="window.location.href='/artwork?id=${pub.ID_Publicacion}'">
+      <div class="art-card-ph"
+        style="height:200px;
+        background-image:url('data:image/jpeg;base64,${pub.URL_Imagen}');
+        background-size:cover;
+        background-position:center;">
+      </div>
+      <div class="art-card-overlay">
+        <div class="art-card-artist">${pub.Titulo}</div>
+        <div class="art-card-cat">Categoría ${pub.ID_Categoria}</div>
+      </div>
+      <div class="art-card-price">$${pub.Precio}</div>
+    </div>
+  `;
+});
 
   } catch (err) {
     console.error(err);

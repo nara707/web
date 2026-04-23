@@ -25,7 +25,7 @@ app.use('/HTML', express.static(path.join(__dirname, 'HTML')));
 const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
-    password: 'root',
+    password: '12345',
     database: 'pia_pw2',
     port: 3306
 });
@@ -37,9 +37,6 @@ db.connect((error) => {
     }
     console.log('Conectado a la base de datos MySQL');
 });
-
-// --- RUTAS DE NAVEGACIÓN ---
-app.use('/', pageRoutes);
 
 // --- ENDPOINT DE REGISTRO ---
 app.post('/usuario/registrar', upload.single('foto'), async (req, res) => {
@@ -311,6 +308,91 @@ app.get('/publicaciones/random', async (req, res) => {
     }
 });
 
+// --- ENDPOINT PARA OBTENER UNA PUBLICACIÓN POR ID ---
+app.get('/api/publicacion/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [rows] = await db.promise().query(`
+            SELECT 
+                p.ID_Publicacion,
+                p.Titulo,
+                p.Descripcion,
+                p.Precio,
+                p.TerminosCondiciones,
+                p.FechaPublicacion,
+                p.MetodoPago,
+                p.ID_Categoria,
+                c.Nombre AS Categoria,
+                u.Nombre AS NombreArtista,
+                u.ID_Usuario AS ID_Usuario_Artista,
+                u.Correo AS CorreoArtista,
+                u.Biografia,
+                u.fdp AS FotoArtista,
+                i.URL_Imagen
+            FROM publicaciones p
+            LEFT JOIN categorias c ON p.ID_Categoria = c.ID_Categoria
+            LEFT JOIN usuario u ON p.ID_Usuario = u.ID_Usuario
+            LEFT JOIN imagenes_publicacion i ON p.ID_Publicacion = i.ID_Publicacion AND i.Portada = 1
+            WHERE p.ID_Publicacion = ? AND p.Activa = 1
+        `, [id]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ msg: "Publicación no encontrada" });
+        }
+
+        return res.json(rows[0]);
+    } catch (err) {
+        console.error("Error al obtener publicación:", err);
+        return res.status(500).json({ msg: "Error en el servidor" });
+    }
+});
+
+// --- ENDPOINT PERFIL PÚBLICO DE OTRO USUARIO ---
+app.get('/api/perfil-publico', async (req, res) => {
+    const { id } = req.query;
+    if (!id) return res.status(400).json({ msg: "Falta el id" });
+
+    try {
+        const [result] = await db.promise().query(
+            'SELECT Nombre, fdp, Biografia FROM usuario WHERE ID_Usuario = ?',
+            [id]
+        );
+        if (result.length === 0) return res.status(404).json({ msg: "Usuario no encontrado" });
+
+        const u = result[0];
+        return res.json({ nombre: u.Nombre, foto: u.fdp, biografia: u.Biografia });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ msg: "Error en el servidor" });
+    }
+});
+
+
+// --- ENDPOINT PARA COMISIONAR ---
+app.post('/pedidos/crear', async (req, res) => {
+    console.log("BODY RECIBIDO:", req.body);
+    const { id_usuario, id_artista, id_publicacion, personalizacion, total, metodo_pago } = req.body;
+
+    if (!id_usuario || !id_artista || !total) {
+        return res.status(400).json({ msg: "Faltan campos obligatorios" });
+    }
+
+    try {
+        const [result] = await db.promise().query(
+            `INSERT INTO pedidos (ID_Usuario, ID_Artista, ID_Publicacion, Personalizacion, Total, MetodoPago, Estado)
+             VALUES (?, ?, ?, ?, ?, ?, 'pendiente')`,
+            [id_usuario, id_artista, id_publicacion || null, personalizacion || '', total, metodo_pago || '']
+        );
+
+        return res.status(201).json({ msg: "Pedido creado", id_pedido: result.insertId });
+    } catch (err) {
+        console.error("Error al crear pedido:", err);
+        return res.status(500).json({ msg: "Error en el servidor" });
+    }
+});
+
+// --- RUTAS DE NAVEGACIÓN ---
+app.use('/', pageRoutes);
 
 // --- INICIO DEL SERVIDOR ---
 app.listen(puerto, () => {

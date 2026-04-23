@@ -1,3 +1,51 @@
+//Funcion para actualizar el navbar
+actualizarNavbar();// Navbar dinámico
+function actualizarNavbar() {
+  const usuario = sessionStorage.getItem('usuario');
+  const navLinks = document.querySelector('.nav-links');
+
+  if (usuario) {
+    navLinks.innerHTML = `
+      <a href="/landing">Explora</a>
+      <a href="/landing#categorias">Categorías</a>
+      <a href="/basket">Canasta</a>
+      <a href="/mi-perfil">Perfil</a>
+    `;  
+  }
+}
+
+async function cargarPerfilUsuario() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (!id) return;
+
+    try {
+        const res = await fetch(`/api/perfil-publico?id=${id}`);
+        const data = await res.json();
+
+        // Nombre en sidebar
+        const nombreEl = document.querySelector('.filter-card .filter-section h4');
+        if (nombreEl) nombreEl.textContent = data.nombre;
+
+        // Foto en banner
+        const avatar = document.querySelector('.large-avatar');
+        if (avatar && data.foto) {
+            avatar.style.backgroundImage = `url('${data.foto}')`;
+            avatar.style.backgroundSize = 'cover';
+            avatar.style.backgroundPosition = 'center';
+        }
+
+        // Descripción en sidebar
+        const descEl = document.querySelector('.description-text');
+        if (descEl && data.biografia) descEl.textContent = `"${data.biografia}"`;
+
+    } catch (err) {
+        console.error('Error cargando perfil:', err);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', cargarPerfilUsuario);
+
 (function() {
           // ── Estrellas ──
     const sc=['#e8d87a','#d899e8','#ffffff','#f0c8a0','#b05ad0'];
@@ -9,18 +57,39 @@
 
 
       // ----- DATOS DE LAS CARDS  -----
-      const allCards = [
-        { title: 'Chibi comfy', artist: '@valeria.draws', category: 'ilustracion', price: '$45', catLabel: 'Ilustración' , date: '2023-10-01', likes:'1.3k' ,  h:220, c1:'#d899e8', c2:'#5a1a7a'},
-        { title: 'Retrato anime', artist: '@mikan.art', category: 'ilustracion', price: '$60', catLabel: 'Ilustración',date: '2023-10-02', likes: '2.1k', h:240, c1:'#c87ce8', c2:'#e8d87a'},
-        { title: 'Diseño de moda', artist: '@modabykarim', category: 'moda', price: '$120', catLabel: 'Moda', date: '2023-10-03', likes: '1.8k', h:244, c1:'#c87ce8', c2:'#e8d87a'},
-        { title: 'Sketch tatuaje', artist: '@inkbymarcelo', category: 'tatuajes', price: '$80', catLabel: 'Tatuajes' , date: '2023-10-04', likes: '1.5k', h:227, c1:'#d899e8', c2:'#5a1a7a'},
-        { title: 'Fotografía conceptual', artist: '@luz.foto', category: 'foto', price: '$150', catLabel: 'Fotografía', date: '2023-10-05', likes: '1.2k', h:242, c1:'#c87ce8', c2:'#e8d87a' },
-        { title: 'Logo diseño', artist: '@graphic.nova', category: 'diseno', price: '$95', catLabel: 'Diseño',  date: '2023-10-06', likes: '1.1k', h:267, c1:'#c87ce8', c2:'#e8d87a' },
-        { title: 'Ilustración mural', artist: '@sofía.mural', category: 'ilustracion', price: '$200', catLabel: 'Ilustración' , date: '2023-10-07', likes: '1.4k', h:230, c1:'#d899e8', c2:'#5a1a7a'},
-        { title: 'Emotes cutesy', artist: '@pixel.puff', category: 'ilustracion', price: '$35', catLabel: 'Ilustración', date: '2023-10-08', likes: '1.6k', h:232, c1:'#c87ce8', c2:'#e8d87a' },
-        { title: 'Bocetos moda', artist: '@line.draw', category: 'moda', price: '$70', catLabel: 'Moda' , date: '2023-10-09', likes: '1.9k', h:212, c1:'#d899e8', c2:'#5a1a7a'},
-      ];
+  let allCards = [];
 
+  async function cargarPublicaciones() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (!id) return;
+
+    try {
+        const res = await fetch(`/api/publicaciones/${id}`);
+        const data = await res.json();
+
+        allCards = data.map(pub => ({
+            id: pub.ID_Publicacion,
+            title: pub.Titulo,
+            artist: `@${pub.Categoria || 'artista'}`,
+            category: pub.ID_Categoria,
+            catLabel: pub.Categoria || 'Otro',
+            price: `$${parseFloat(pub.Precio).toFixed(2)}`,
+            date: pub.FechaPublicacion
+                ? new Date(pub.FechaPublicacion).toISOString().slice(0, 10)
+                : '—',
+            likes: '0',
+            image: pub.URL_Imagen
+                ? `data:image/jpeg;base64,${pub.URL_Imagen}`
+                : null
+        }));
+
+        renderGrid();
+
+    } catch (err) {
+        console.error('Error al cargar publicaciones:', err);
+    }
+}
       
  // ----- ESTADO -----
   const grid = document.getElementById('cardsGrid');
@@ -72,21 +141,26 @@
 
     // 4. generar HTML de las cards
     let html = '';
-    filtered.forEach(card => {
-      html += `
-        <div class="art-card" data-category="${card.category}">
-          <div class="art-card-ph" style="background: linear-gradient(145deg, #c87ce8, #e8d87a);"></div>
-          <div class="art-card-overlay">
-            <div class="art-card-likes"> 💗${card.likes}</div>
-            <div class="art-card-artist">${card.artist}</div>
-            <div class="art-card-cat">${card.catLabel}</div>
-            <div class="art-card-date">${card.date}</div>
-          </div>
-          <div class="art-card-price">${card.price}</div>
-          <button class="art-card-save material-symbols-outlined" onclick="this.classList.toggle('saved')">favorite</button>
+ filtered.forEach(card => {
+    const bg = card.image
+        ? `background-image:url('${card.image}');background-size:cover;background-position:center;`
+        : `background:linear-gradient(145deg,#c87ce8,#e8d87a);`;
+    html += `
+        <div class="art-card" data-category="${card.category}" style="cursor:pointer;"
+             onclick="window.location.href='/artwork?id=${card.id}'">
+            <div class="art-card-ph" style="${bg}"></div>
+            <div class="art-card-overlay">
+                <div class="art-card-likes">💗 ${card.likes}</div>
+                <div class="art-card-artist">${card.title}</div>
+                <div class="art-card-cat">${card.catLabel}</div>
+                <div class="art-card-date">${card.date}</div>
+            </div>
+            <div class="art-card-price">${card.price}</div>
+            <button class="art-card-save material-symbols-outlined" 
+                onclick="event.stopPropagation(); this.classList.toggle('saved')">favorite</button>
         </div>
-      `;
-    });
+    `;
+});
     grid.innerHTML = html;
   }
 
@@ -189,6 +263,6 @@
   setActiveMainChip('categories');
   subfilterRow.style.display = 'flex';  // mostrar subfiltro
   setActiveSubfilterChip('all');
-  renderGrid();
+  cargarPublicaciones();
 
     })();
