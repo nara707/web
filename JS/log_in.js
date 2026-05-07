@@ -45,6 +45,17 @@ const starShapes = [
   document.body.appendChild(el);
 });
 
+const googleBtn = document.getElementById('googleBtn');
+const facebookBtn = document.getElementById('facebookBtn');
+
+googleBtn.addEventListener('click', () => {
+  window.location.href = '/auth/google';
+});
+
+facebookBtn.addEventListener('click', () => {
+  window.location.href = '/auth/facebook';
+});
+
 function validateEmail() {
   const field = document.getElementById('field-email');
   const val = document.getElementById('email').value.trim();
@@ -91,15 +102,17 @@ async function handleLogin() {
     btn.classList.remove('loading');
 
     if (data.msg === 'Registrado') {
-      
-      // Guardar info del usuario en sessionStorage para usarla después
       sessionStorage.setItem("usuario", JSON.stringify(data.info));
-
       document.getElementById('success').classList.add('show');
-      console.log("DATA:", data);
       setTimeout(() => { window.location.href = '/landing'; }, 1500);
 
-    } else if (data.msg === 'No encontrado') {
+    } else if (data.msg === 'Cuenta de Google') {   // ← AGREGAR este caso
+      showError('Esta cuenta usa Google. Inicia sesión con el botón de Google.');
+      shake();
+
+    }
+
+    else if (data.msg === 'No encontrado') {
       showError('Correo o contraseña incorrectos');
       shake();
 

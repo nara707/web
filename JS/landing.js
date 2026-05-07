@@ -1,7 +1,13 @@
-// const usuario = JSON.parse(sessionStorage.getItem("usuario"));
-// console.log(usuario.nombre);
+const params = new URLSearchParams(window.location.search);
+const usuarioParam = params.get('usuario');
 
-// actualizarNavbar();// Navbar dinámico
+if (usuarioParam) {
+    const info = JSON.parse(decodeURIComponent(usuarioParam));
+    sessionStorage.setItem('usuario', JSON.stringify(info));
+    // Limpiar el ?usuario=... de la URL sin recargar la página
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+
 function actualizarNavbar() {
   const usuario = sessionStorage.getItem('usuario');
   const navLinks = document.querySelector('.nav-links');

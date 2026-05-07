@@ -123,4 +123,9 @@ ALTER TABLE publicaciones
 ADD COLUMN ID_Categoria INT,
 ADD COLUMN MetodoPago VARCHAR(50);
 
--- modificacion de la tabla de usuario y nuevas tablas relacionadas --
+
+-- inicio de sesion con google --
+ALTER TABLE usuario
+ADD COLUMN google_id VARCHAR(50) NULL AFTER Correo,
+ADD COLUMN foto_google TEXT NULL AFTER google_id,
+MODIFY COLUMN contrasena VARCHAR(255) NULL;  

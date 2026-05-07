@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800;12..96,900&family=Bebas+Neue&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
- <link rel="stylesheet" href="../css/log_in.css">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800;12..96,900&family=Bebas+Neue&family=DM+Sans:wght@400;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="../css/log_in.css">
 
 </head>
+
 <body>
 
   <div class="wrapper">
@@ -41,8 +45,8 @@
       <div class="field" id="field-password">
         <label for="password">contraseña</label>
         <div class="input-wrap">
-          <input type="password" id="password" autocomplete="current-password"
-            style="padding-right:44px" oninput="validatePassword()" />
+          <input type="password" id="password" autocomplete="current-password" style="padding-right:44px"
+            oninput="validatePassword()" />
           <button class="toggle-pw" type="button" onclick="togglePassword()">👁</button>
         </div>
       </div>
@@ -50,7 +54,7 @@
       <p class="forgot"><a href="#">¿Olvidaste tu contraseña?</a></p>
 
       <p id="error-msg" style="color:red; display:none;"></p>
-      
+
       <button class="btn-signin" id="btn" onclick="handleLogin()">
         <span class="btn-text">sign in</span>
         <div class="spinner"></div>
@@ -59,11 +63,10 @@
       <div class="divider">o continúa con</div>
 
       <div class="social-row">
-        <button class="social-btn">G Google</button>
-        <button class="social-btn">f Facebook</button>
-        <button class="social-btn">in LinkedIn</button>
+        <button class="social-btn" id="googleBtn">G Google</button>
+        <button class="social-btn" id="facebookBtn">f Facebook</button>
       </div>
-
+      
       <p class="register">¿No tienes una cuenta? <a href="/">Crea una cuenta</a></p>
     </div>
 
@@ -73,7 +76,8 @@
     </div>
   </div>
 
-    <script src="../js/log_in.js"></script>
+  <script src="../js/log_in.js"></script>
 
 </body>
+
 </html>

@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2');
 const pageRoutes = require('./RUTAS/rutas.js');
@@ -5,6 +6,10 @@ const path = require('path');
 const multer = require('multer');
 const cors = require('cors');
 const app = express();
+const session = require('express-session');
+const passportConfig = require('./config/passport');
+const logger = require('./logger');
+
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -21,22 +26,91 @@ app.use('/CSS', express.static(path.join(__dirname, 'CSS')));
 app.use('/js', express.static(path.join(__dirname, 'js')));
 app.use('/HTML', express.static(path.join(__dirname, 'HTML')));
 
+
+
 // --- CONEXIÓN A BASE DE DATOS ---
 const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
-    password: '12345',
+    password: 'root',
     database: 'pia_pw2',
     port: 3306
 });
 
 db.connect((error) => {
-    if (error) {
-        console.log("Error de conexión:", error);
-        return;
-    }
-    console.log('Conectado a la base de datos MySQL');
+    if (error) { logger.info('Error de conexión:', error); return; }
+    logger.info('Conectado a la base de datos MySQL');
 });
+
+const passport = passportConfig(db);
+
+app.use(session({
+    secret: 'clave_secreta_segura',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false }
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
+
+app.get('/auth/google',
+    (req, res, next) => passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next)
+);
+
+app.get('/auth/google',
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+app.get('/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/HTML/login.html' }),
+    (req, res) => {
+        const u = req.user;
+        const info = {
+            id: u.ID_Usuario,
+            nombre: u.Nombre,
+            correo: u.Correo,
+            descripcion: u.Biografia || 'Sin biografía',
+            fdn: u.fecha_nacimiento,
+            foto: u.foto_google || u.fdp
+        };
+        const encoded = encodeURIComponent(JSON.stringify(info));
+        res.redirect(`/landing?usuario=${encoded}`);
+    }
+);
+
+app.get('/auth/logout', (req, res) => {
+    req.logout((err) => {
+        if (err) return res.status(500).json({ msg: 'Error al cerrar sesión' });
+        res.redirect('/HTML/login.html');
+    });
+});
+
+app.get('/auth/facebook',
+    passport.authenticate('facebook', { scope: ['email'] })
+);
+
+app.get('/auth/facebook/callback',
+    passport.authenticate('facebook', {
+        failureRedirect: '/HTML/login.html'
+    }),
+    (req, res) => {
+
+        const u = req.user;
+
+        const info = {
+            id: u.ID_Usuario,
+            nombre: u.Nombre,
+            correo: u.Correo,
+            descripcion: u.Biografia || 'Sin biografía',
+            foto: u.foto_facebook || u.fdp
+        };
+
+        const encoded = encodeURIComponent(JSON.stringify(info));
+
+        res.redirect(`/landing?usuario=${encoded}`);
+    }
+);
 
 // --- ENDPOINT DE REGISTRO ---
 app.post('/usuario/registrar', upload.single('foto'), async (req, res) => {
@@ -77,8 +151,8 @@ app.post('/usuario/registrar', upload.single('foto'), async (req, res) => {
             msg: "Registrado",
             //devolvemos todos los datos del usuario para el session storage usando las variables definidas en este este endpoint
             info: {
-                
-                id: usuario.ID_Usuario, 
+
+                id: usuario.ID_Usuario,
                 nombre: nombre,
                 correo: correo,
                 descripcion: biografia || 'Sin biografía',
@@ -89,7 +163,7 @@ app.post('/usuario/registrar', upload.single('foto'), async (req, res) => {
         });
 
     } catch (err) {
-        console.error("Error en el servidor:", err);
+        logger.info('Conectado a la base de datos MySQL');
         return res.status(500).json({ msg: "Error interno del servidor" });
     }
 });
@@ -98,42 +172,53 @@ app.post('/usuario/registrar', upload.single('foto'), async (req, res) => {
 //-- ENDPOINT DE LOGIN --
 app.post('/usuario/login', async (req, res) => {
     const { correo, contrasena } = req.body;
+
     if (!correo || !contrasena) {
         return res.json({ msg: "Error: Campos incompletos" });
     }
 
+    try {
+        // buscar solo por correo
+        const [result] = await db.promise().query(
+            'SELECT * FROM usuario WHERE Correo = ?',
+            [correo]
+        );
 
-    db.query(
-        'SELECT * FROM usuario WHERE correo = ? AND contrasena = ?',
-        [correo, contrasena],
-        (err, result) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({ msg: "Error en la base de datos" });
-            }
-
-            if (result.length > 0) {
-                const usuario = result[0];
-
-
-                return res.json({
-                    msg: "Registrado",
-                    //traemos todos los datos del usuario para el session storage
-                    info: {
-                        id: usuario.ID_Usuario, 
-                        nombre: usuario.Nombre,
-                        correo: usuario.Correo,
-                        descripcion: usuario.Biografia,
-                        fdn: usuario.fecha_nacimiento,
-                        foto: usuario.fdp
-
-                    }
-                });
-            } else {
-                return res.json({ msg: "No encontrado" });
-            }
+        if (result.length === 0) {
+            return res.json({ msg: "No encontrado" });
         }
-    );
+
+        const usuario = result[0];
+
+        // verificar si es cuenta de Google (sin contraseña)
+        if (!usuario.contrasena) {
+            return res.json({ msg: "Cuenta de Google" }); // maneja esto en tu JS frontend
+        }
+
+        // validar contraseña normal
+        if (usuario.contrasena !== contrasena) {
+            return res.json({ msg: "No encontrado" });
+        }
+
+        logger.info(`Intento de login: ${correo}`);
+
+        // Todo bien, devolver info
+        return res.json({
+            msg: "Registrado",
+            info: {
+                id: usuario.ID_Usuario,
+                nombre: usuario.Nombre,
+                correo: usuario.Correo,
+                descripcion: usuario.Biografia,
+                fdn: usuario.fecha_nacimiento,
+                foto: usuario.fdp
+            }
+        });
+
+    } catch (err) {
+        logger.error(`Login fallido para ${correo}: ${err.message}`);
+        return res.status(500).json({ msg: "Error en la base de datos" });
+    }
 });
 
 //-- ENDPOINT DEL PERFIL (SOLO DATOS DEL USUARIO POR AHORA) --
@@ -161,7 +246,7 @@ app.get('/api/perfil', async (req, res) => {
         });
 
     } catch (err) {
-        console.error("Error al obtener perfil:", err);
+        logger.error("Error al obtener perfil:", err);
         return res.status(500).json({ msg: "Error interno del servidor" });
     }
 });
@@ -175,7 +260,7 @@ app.get('/categorias', async (req, res) => {
 
         res.json(categorias);
     } catch (error) {
-        console.error(error);
+        logger.error(err.message);
         res.status(500).json({ msg: 'Error al obtener categorías' });
     }
 });
@@ -195,8 +280,8 @@ app.post('/publicaciones/crear', upload.single('imagen'), async (req, res) => {
     }
 
     try {
-        console.log("BODY:", req.body);
-        console.log("ID_USUARIO:", id_usuario);
+        logger.info(`BODY: ${JSON.stringify(req.body)}`);
+        logger.info(`ID_USUARIO: ${id_usuario}`);
         const queryPublicacion = `
           INSERT INTO publicaciones (ID_Usuario, Titulo, Descripcion, Precio, TerminosCondiciones, FechaPublicacion, Activa, ID_Categoria, MetodoPago)
     VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
@@ -217,10 +302,11 @@ app.post('/publicaciones/crear', upload.single('imagen'), async (req, res) => {
         `;
         await db.promise().query(queryImagen, [id_publicacion, imagenBase64,]);
 
+        logger.info(`Usuario ${id_usuario} creó publicación "${titulo}"`);
         return res.status(201).json({ msg: "Publicación creada con éxito", id_publicacion });
 
     } catch (err) {
-        console.error("Error al crear publicación:", err);
+        logger.error("Error al crear publicación:", err);
         return res.status(500).json({ msg: "Error en el servidor" });
     }
 });
@@ -250,7 +336,7 @@ app.get('/api/publicaciones/:id_usuario', async (req, res) => {
 
         return res.json(publicaciones);
     } catch (err) {
-        console.error("Error al obtener publicaciones:", err);
+        logger.error("Error al obtener publicaciones:", err);
         return res.status(500).json({ msg: "Error en el servidor" });
     }
 });
@@ -283,7 +369,7 @@ app.get('/publicaciones/categoria/:id_categoria', async (req, res) => {
         res.json(rows);
 
     } catch (err) {
-        console.error(err);
+        logger.error(err.message);
         res.status(500).json({ msg: "Error" });
     }
 });
@@ -342,7 +428,7 @@ app.get('/api/publicacion/:id', async (req, res) => {
 
         return res.json(rows[0]);
     } catch (err) {
-        console.error("Error al obtener publicación:", err);
+        logger.error("Error al obtener publicación:", err);
         return res.status(500).json({ msg: "Error en el servidor" });
     }
 });
@@ -362,7 +448,7 @@ app.get('/api/perfil-publico', async (req, res) => {
         const u = result[0];
         return res.json({ nombre: u.Nombre, foto: u.fdp, biografia: u.Biografia });
     } catch (err) {
-        console.error(err);
+        logger.error(err.message);
         return res.status(500).json({ msg: "Error en el servidor" });
     }
 });
@@ -370,7 +456,7 @@ app.get('/api/perfil-publico', async (req, res) => {
 
 // --- ENDPOINT PARA COMISIONAR ---
 app.post('/pedidos/crear', async (req, res) => {
-    console.log("BODY RECIBIDO:", req.body);
+    logger.info(`BODY RECIBIDO: ${JSON.stringify(req.body)}`);
     const { id_usuario, id_artista, id_publicacion, personalizacion, total, metodo_pago } = req.body;
 
     if (!id_usuario || !id_artista || !total) {
@@ -386,7 +472,7 @@ app.post('/pedidos/crear', async (req, res) => {
 
         return res.status(201).json({ msg: "Pedido creado", id_pedido: result.insertId });
     } catch (err) {
-        console.error("Error al crear pedido:", err);
+        logger.error("Error al crear pedido:", err);
         return res.status(500).json({ msg: "Error en el servidor" });
     }
 });
@@ -396,5 +482,5 @@ app.use('/', pageRoutes);
 
 // --- INICIO DEL SERVIDOR ---
 app.listen(puerto, () => {
-    console.log(`Servidor corriendo en http://localhost:${puerto}`);
+    logger.info(`Servidor corriendo en http://localhost:${puerto}`);
 });
