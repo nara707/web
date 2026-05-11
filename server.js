@@ -1,3 +1,4 @@
+console.log("🟢 SERVER VERSIÓN NUEVA CARGADA");
 const express = require('express');
 const mysql = require('mysql2');
 const pageRoutes = require('./RUTAS/rutas.js');
@@ -391,6 +392,363 @@ app.post('/pedidos/crear', async (req, res) => {
     }
 });
 
+// ==================== PEDIDOS / COMISIONES ====================
+
+// --- OBTENER PEDIDOS DE UN CLIENTE (para Canasta) ---
+app.get('/pedidos/usuario/:id_usuario', async (req, res) => {
+    const { id_usuario } = req.params;
+
+    try {
+        const [pedidos] = await db.promise().query(`
+            SELECT 
+                p.ID_Pedido,
+                p.Estado,
+                p.Personalizacion,
+                p.Total,
+                p.MetodoPago,
+                p.Fecha_Pedido,
+                p.ID_Publicacion,
+                pub.Titulo AS PublicacionTitulo,
+                pub.ID_Categoria,
+                art.Nombre AS ArtistaNombre,
+                art.fdp AS ArtistaFoto,
+                img.URL_Imagen AS Portada
+            FROM pedidos p
+            LEFT JOIN publicaciones pub ON p.ID_Publicacion = pub.ID_Publicacion
+            LEFT JOIN usuario art ON p.ID_Artista = art.ID_Usuario
+            LEFT JOIN imagenes_publicacion img ON pub.ID_Publicacion = img.ID_Publicacion AND img.Portada = 1
+            WHERE p.ID_Usuario = ?
+            ORDER BY p.Fecha_Pedido DESC
+        `, [id_usuario]);
+
+        res.json(pedidos);
+    } catch (err) {
+        console.error("Error al obtener pedidos del usuario:", err);
+        res.status(500).json({ msg: "Error en el servidor" });
+    }
+});
+
+// --- OBTENER PEDIDOS RECIBIDOS POR UN ARTISTA (para Ventas) ---
+app.get('/pedidos/artista/:id_artista', async (req, res) => {
+    const { id_artista } = req.params;
+    console.log(`📦 Consultando ventas del artista ${id_artista}`);
+
+    try {
+        const [pedidos] = await db.promise().query(`
+            SELECT 
+                p.ID_Pedido,
+                p.Estado,
+                p.Personalizacion,
+                p.Total,
+                p.MetodoPago,
+                p.Fecha_Pedido,
+                p.ID_Publicacion,
+                pub.Titulo AS PublicacionTitulo,
+                pub.ID_Categoria,
+                cli.Nombre AS ClienteNombre,
+                cli.fdp AS ClienteFoto,
+                img.URL_Imagen AS Portada
+            FROM pedidos p
+            LEFT JOIN publicaciones pub ON p.ID_Publicacion = pub.ID_Publicacion
+            LEFT JOIN usuario cli ON p.ID_Usuario = cli.ID_Usuario
+            LEFT JOIN imagenes_publicacion img ON pub.ID_Publicacion = img.ID_Publicacion AND img.Portada = 1
+            WHERE p.ID_Artista = ?
+            ORDER BY p.Fecha_Pedido DESC
+        `, [id_artista]);
+
+        console.log(`✅ Encontradas ${pedidos.length} ventas`);
+        res.json(pedidos);
+    } catch (err) {
+        console.error("Error al obtener pedidos del artista:", err);
+        res.status(500).json({ msg: "Error en el servidor", error: err.message });
+    }
+});
+
+// --- CREAR PEDIDO 
+app.post('/pedidos/crear', async (req, res) => {
+    const { id_usuario, id_artista, id_publicacion, personalizacion, total, metodo_pago } = req.body;
+
+    if (!id_usuario || !id_artista || !total) {
+        return res.status(400).json({ msg: "Faltan campos obligatorios" });
+    }
+
+    try {
+        // Iniciar transacción
+        await db.promise().beginTransaction();
+
+        // 1. Insertar pedido
+        const [result] = await db.promise().query(
+            `INSERT INTO pedidos (ID_Usuario, ID_Artista, ID_Publicacion, Personalizacion, Total, MetodoPago, Estado)
+             VALUES (?, ?, ?, ?, ?, ?, 'pendiente')`,
+            [id_usuario, id_artista, id_publicacion || null, personalizacion || '', total, metodo_pago || '']
+        );
+
+        const id_pedido = result.insertId;
+
+        // 2. Registrar en Historial para el CLIENTE (compra)
+        await db.promise().query(
+            `INSERT INTO historial (ID_Usuario, ID_Pedido, Tipo) VALUES (?, ?, 'compra')`,
+            [id_usuario, id_pedido]
+        );
+
+        // 3. Registrar en Historial para el ARTISTA (venta)
+        await db.promise().query(
+            `INSERT INTO historial (ID_Usuario, ID_Pedido, Tipo) VALUES (?, ?, 'venta')`,
+            [id_artista, id_pedido]
+        );
+
+        // Confirmar transacción
+        await db.promise().commit();
+
+        return res.status(201).json({ msg: "Pedido creado", id_pedido });
+
+    } catch (err) {
+        await db.promise().rollback();
+        console.error("Error al crear pedido:", err);
+        return res.status(500).json({ msg: "Error en el servidor" });
+    }
+});
+
+// --- CANCELAR PEDIDO (solo si está pendiente o aprobado) ---
+app.put('/pedidos/:id/cancelar', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Verificar estado actual
+        const [pedido] = await db.promise().query(
+            'SELECT Estado FROM pedidos WHERE ID_Pedido = ?',
+            [id]
+        );
+
+        if (pedido.length === 0) {
+            return res.status(404).json({ msg: "Pedido no encontrado" });
+        }
+
+        const estadoActual = pedido[0].Estado;
+        const permitidosCancelar = ['pendiente', 'aprobado'];
+
+        if (!permitidosCancelar.includes(estadoActual)) {
+            return res.status(400).json({ 
+                msg: `No se puede cancelar el pedido porque está en estado "${estadoActual}". Solo se pueden cancelar pedidos pendientes o aprobados.` 
+            });
+        }
+
+        await db.promise().query(
+            'UPDATE pedidos SET Estado = "Cancelado" WHERE ID_Pedido = ?',
+            [id]
+        );
+
+        res.json({ msg: "Pedido cancelado correctamente" });
+    } catch (err) {
+        console.error("Error al cancelar pedido:", err);
+        res.status(500).json({ msg: "Error en el servidor" });
+    }
+});
+
+// --- APROBAR PEDIDO (artista acepta la comisión) ---
+app.put('/pedidos/:id/aprobar', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [pedido] = await db.promise().query(
+            'SELECT Estado FROM pedidos WHERE ID_Pedido = ?',
+            [id]
+        );
+
+        if (pedido.length === 0) {
+            return res.status(404).json({ msg: "Pedido no encontrado" });
+        }
+
+        if (pedido[0].Estado !== 'pendiente') {
+            return res.status(400).json({ msg: "Solo se pueden aprobar pedidos en estado 'pendiente'" });
+        }
+
+        await db.promise().query(
+            'UPDATE pedidos SET Estado = "aprobado" WHERE ID_Pedido = ?',
+            [id]
+        );
+
+        res.json({ msg: "Pedido aprobado correctamente" });
+    } catch (err) {
+        console.error("Error al aprobar pedido:", err);
+        res.status(500).json({ msg: "Error en el servidor" });
+    }
+});
+
+// --- RECHAZAR PEDIDO (artista rechaza la comisión) ---
+app.put('/pedidos/:id/rechazar', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [pedido] = await db.promise().query(
+            'SELECT Estado FROM pedidos WHERE ID_Pedido = ?',
+            [id]
+        );
+
+        if (pedido.length === 0) {
+            return res.status(404).json({ msg: "Pedido no encontrado" });
+        }
+
+        if (pedido[0].Estado !== 'pendiente') {
+            return res.status(400).json({ msg: "Solo se pueden rechazar pedidos en estado 'pendiente'" });
+        }
+
+        await db.promise().query(
+            'UPDATE pedidos SET Estado = "Cancelado" WHERE ID_Pedido = ?',
+            [id]
+        );
+
+        res.json({ msg: "Pedido rechazado correctamente" });
+    } catch (err) {
+        console.error("Error al rechazar pedido:", err);
+        res.status(500).json({ msg: "Error en el servidor" });
+    }
+});
+
+// --- PAGAR PEDIDO (cliente paga, cambia a 'En proceso') ---
+app.put('/pedidos/:id/pagar', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [pedido] = await db.promise().query(
+            'SELECT Estado FROM pedidos WHERE ID_Pedido = ?',
+            [id]
+        );
+
+        if (pedido.length === 0) {
+            return res.status(404).json({ msg: "Pedido no encontrado" });
+        }
+
+        if (pedido[0].Estado !== 'aprobado') {
+            return res.status(400).json({ msg: "Solo se pueden pagar pedidos en estado 'aprobado'" });
+        }
+
+        await db.promise().query(
+            'UPDATE pedidos SET Estado = "En proceso" WHERE ID_Pedido = ?',
+            [id]
+        );
+
+        res.json({ msg: "Pago realizado. El pedido está en proceso." });
+    } catch (err) {
+        console.error("Error al procesar pago:", err);
+        res.status(500).json({ msg: "Error en el servidor" });
+    }
+});
+
+// --- ACTUALIZAR ESTADO GENERAL (para artista: Revision, Completado, etc.) ---
+app.put('/pedidos/:id/estado', async (req, res) => {
+    const { id } = req.params;
+    const { nuevoEstado } = req.body;
+    
+    console.log(`🔄 Actualizando pedido ${id} a estado: ${nuevoEstado}`);
+
+    const estadosValidos = ['pendiente', 'aprobado', 'En proceso', 'Revision', 'Completado', 'Cancelado'];
+
+    if (!nuevoEstado || !estadosValidos.includes(nuevoEstado)) {
+        return res.status(400).json({ msg: "Estado no válido" });
+    }
+
+    try {
+        const [pedido] = await db.promise().query(
+            'SELECT Estado FROM pedidos WHERE ID_Pedido = ?',
+            [id]
+        );
+
+        if (pedido.length === 0) {
+            return res.status(404).json({ msg: "Pedido no encontrado" });
+        }
+
+        // Validar transiciones permitidas
+        const estadoActual = pedido[0].Estado;
+        
+        if (estadoActual === 'Completado' || estadoActual === 'Cancelado') {
+            return res.status(400).json({ msg: `No se puede cambiar un pedido ${estadoActual}` });
+        }
+
+        await db.promise().query(
+            'UPDATE pedidos SET Estado = ? WHERE ID_Pedido = ?',
+            [nuevoEstado, id]
+        );
+
+        res.json({ msg: `Estado actualizado a "${nuevoEstado}"` });
+    } catch (err) {
+        console.error("Error al actualizar estado:", err);
+        res.status(500).json({ msg: "Error en el servidor" });
+    }
+});
+
+// --- ACTUALIZAR PUBLICACIÓN CON VALIDACIÓN DE PEDIDOS ACTIVOS ---
+app.put('/api/publicacion/:id', async (req, res) => {
+    console.log("🚨 ENTRÓ AL PUT", req.params.id, req.body);
+    const { id } = req.params;
+    const { titulo, descripcion, terminos, precio, id_categoria, metodo_pago, id_usuario } = req.body;
+
+    if (!titulo || !descripcion || !precio || !id_categoria) {
+        return res.status(400).json({ msg: "Faltan campos obligatorios" });
+    }
+
+    try {
+        // 1. Verificar que la publicación pertenece al usuario
+        const [publicacion] = await db.promise().query(
+            'SELECT ID_Usuario, Precio FROM publicaciones WHERE ID_Publicacion = ?',
+            [id]
+        );
+
+        if (publicacion.length === 0) {
+            return res.status(404).json({ msg: "Publicación no encontrada" });
+        }
+
+        if (publicacion[0].ID_Usuario !== parseInt(id_usuario)) {
+            return res.status(403).json({ msg: "No tienes permiso para editar esta publicación" });
+        }
+
+        // 2. Bloquear si hay pedidos activos
+        const [pedidosActivos] = await db.promise().query(`
+            SELECT ID_Pedido, Estado 
+            FROM pedidos 
+            WHERE ID_Publicacion = ? AND Estado IN ('aprobado', 'En proceso', 'Revision')
+        `, [id]);
+
+        console.log(`📊 Pedidos activos: ${pedidosActivos.length}`);
+
+        if (pedidosActivos.length > 0) {
+            const estadosList = pedidosActivos.map(p => p.Estado).join(', ');
+            return res.status(400).json({ 
+                msg: `No puedes editar esta publicación porque tiene ${pedidosActivos.length} pedido(s) en estado: ${estadosList}. Finaliza o cancela esos pedidos primero.`,
+                pedidosActivos: pedidosActivos.length
+            });
+        }
+
+        // 3. Actualizar
+        await db.promise().query(`
+            UPDATE publicaciones 
+            SET Titulo = ?, Descripcion = ?, Precio = ?, TerminosCondiciones = ?, ID_Categoria = ?, MetodoPago = ?
+            WHERE ID_Publicacion = ?
+        `, [titulo, descripcion, parseFloat(precio), terminos, id_categoria, metodo_pago, id]);
+
+        console.log("✅ Publicación actualizada");
+        res.json({ msg: "Publicación actualizada correctamente" });
+
+    } catch (err) {
+        console.error("Error:", err);
+        res.status(500).json({ msg: "Error en el servidor" });
+    }
+});
+
+
+
+// --- OBTENER CATEGORÍAS ---
+app.get('/categorias', async (req, res) => {
+    try {
+        const [categorias] = await db.promise().query('SELECT ID_Categoria, Nombre FROM categorias');
+        res.json(categorias);
+    } catch (err) {
+        console.error("Error al obtener categorías:", err);
+        res.status(500).json({ msg: "Error en el servidor" });
+    }
+});
+
+
 // --- RUTAS DE NAVEGACIÓN ---
 app.use('/', pageRoutes);
 
@@ -398,3 +756,4 @@ app.use('/', pageRoutes);
 app.listen(puerto, () => {
     console.log(`Servidor corriendo en http://localhost:${puerto}`);
 });
+

@@ -461,3 +461,502 @@ font-size: 0.7rem;
         grid-template-columns: 1fr;
       }
     }
+
+ /* ============================================
+   ESTILOS PARA VENTAS Y COMPRAS (como Basket.css)
+   NO afecta a las publicaciones
+   ============================================ */
+
+/* Contenedor de pedidos - SOLO para ventas y compras */
+.pedidos-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Card individual de pedido (venta o compra) */
+.pedido-card {
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 18px;
+    padding: 1.2rem;
+    transition: all 0.25s ease;
+    animation: fadeUp 0.4s ease both;
+}
+
+.pedido-card:hover {
+    background: rgba(255, 255, 255, 0.65);
+    border-color: rgba(176, 90, 208, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(140, 60, 180, 0.12);
+}
+
+/* Cabecera de la card */
+.pedido-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.pedido-cliente,
+.pedido-artista {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #3a0a5a;
+    margin: 0;
+}
+
+.pedido-publicacion {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #b05ad0;
+    margin: 4px 0;
+}
+
+.pedido-personalizacion {
+    font-size: 0.8rem;
+    color: #6a3a8a;
+    line-height: 1.5;
+    margin: 0.5rem 0;
+    background: rgba(255, 255, 255, 0.35);
+    padding: 0.5rem 0.8rem;
+    border-radius: 12px;
+}
+
+.pedido-personalizacion strong {
+    color: #5a1a7a;
+}
+
+/* Precio y estado */
+.pedido-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(176, 90, 208, 0.15);
+}
+
+.pedido-precio {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #5a1a7a;
+}
+
+/* Badges de estado */
+.pedido-estado {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 50px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.estado-pendiente {
+    background: linear-gradient(90deg, #f0c8a0, #e8a070);
+    color: #7a4010;
+}
+
+.estado-aprobado {
+    background: linear-gradient(90deg, #d899e8, #b05ad0);
+    color: white;
+}
+
+.estado-en-proceso {
+    background: linear-gradient(90deg, #b05ad0, #5a1a7a);
+    color: white;
+}
+
+.estado-revision {
+    background: linear-gradient(90deg, #e8a8d8, #c87ce8);
+    color: #5a1a7a;
+}
+
+.estado-completado {
+    background: linear-gradient(90deg, #e8d87a, #f0e89a);
+    color: #7a6010;
+}
+
+.estado-cancelado {
+    background: rgba(154, 106, 176, 0.5);
+    color: #5a1a7a;
+}
+
+/* Botones de acción */
+.pedido-acciones {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 0.8rem;
+}
+
+.btn-aprobar,
+.btn-rechazar,
+.btn-iniciar,
+.btn-revision,
+.btn-retomar,
+.btn-completar,
+.btn-reseñar {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 8px 18px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-aprobar {
+    background: linear-gradient(90deg, #30c070, #209060);
+    color: white;
+}
+
+.btn-rechazar {
+    background: rgba(200, 80, 80, 0.9);
+    color: white;
+}
+
+.btn-iniciar,
+.btn-retomar {
+    background: linear-gradient(90deg, #30a0a0, #208080);
+    color: white;
+}
+
+.btn-revision {
+    background: linear-gradient(90deg, #f0a030, #d08020);
+    color: white;
+}
+
+.btn-completar {
+    background: linear-gradient(90deg, #30a050, #208040);
+    color: white;
+}
+
+.btn-reseñar {
+    background: linear-gradient(135deg, #d899e8, #5a1a7a);
+    color: white;
+    box-shadow: 0 4px 14px rgba(90, 26, 122, 0.25);
+}
+
+.btn-aprobar:hover,
+.btn-rechazar:hover,
+.btn-iniciar:hover,
+.btn-revision:hover,
+.btn-retomar:hover,
+.btn-completar:hover,
+.btn-reseñar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Estado vacío */
+.empty-message {
+    text-align: center;
+    padding: 3rem 1rem;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #9a6ab0;
+    background: rgba(255, 255, 255, 0.35);
+    border: 1px dashed rgba(176, 90, 208, 0.3);
+    border-radius: 18px;
+}
+
+/* Animación */
+@keyframes fadeUpPedido {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   ESTILOS PARA CARDS CON IMAGEN PREVIEW
+   ============================================ */
+
+/* Card de pedido con diseño horizontal (imagen + contenido) */
+.pedido-card {
+    display: flex;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 18px;
+    padding: 1rem;
+    transition: all 0.25s ease;
+}
+
+.pedido-card:hover {
+    background: rgba(255, 255, 255, 0.65);
+    border-color: rgba(176, 90, 208, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(140, 60, 180, 0.12);
+}
+
+/* Imagen preview */
+.pedido-imagen {
+    width: 100px;
+    height: 100px;
+    border-radius: 16px;
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 4px 12px rgba(90, 26, 122, 0.15);
+}
+
+.pedido-imagen.placeholder {
+    background: linear-gradient(135deg, #d899e8, #5a1a7a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+}
+
+/* Contenido de la card */
+.pedido-contenido {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Cabecera */
+.pedido-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.pedido-cliente,
+.pedido-artista {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #3a0a5a;
+    margin: 0;
+}
+
+.pedido-publicacion {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #b05ad0;
+    margin: 4px 0;
+}
+
+/* Personalización */
+.pedido-personalizacion {
+    font-size: 0.78rem;
+    color: #6a3a8a;
+    line-height: 1.5;
+    background: rgba(255, 255, 255, 0.35);
+    padding: 0.5rem 0.8rem;
+    border-radius: 12px;
+}
+
+/* Footer con precio y fecha */
+.pedido-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(176, 90, 208, 0.15);
+}
+
+.pedido-precio {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1rem;
+    font-weight: 900;
+    color: #5a1a7a;
+}
+
+.pedido-fecha {
+    font-size: 0.7rem;
+    color: #9a6ab0;
+}
+
+/* Badges de estado */
+.pedido-estado {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 50px;
+}
+
+/* Botones de acción */
+.pedido-acciones {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.3rem;
+}
+
+.btn-aprobar,
+.btn-rechazar,
+.btn-iniciar,
+.btn-revision,
+.btn-retomar,
+.btn-completar,
+.btn-reseñar {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-aprobar { background: linear-gradient(90deg, #30c070, #209060); color: white; }
+.btn-rechazar { background: rgba(200, 80, 80, 0.9); color: white; }
+.btn-iniciar, .btn-retomar { background: linear-gradient(90deg, #30a0a0, #208080); color: white; }
+.btn-revision { background: linear-gradient(90deg, #f0a030, #d08020); color: white; }
+.btn-completar { background: linear-gradient(90deg, #30a050, #208040); color: white; }
+.btn-reseñar { background: linear-gradient(135deg, #d899e8, #5a1a7a); color: white; }
+
+.btn-aprobar:hover,
+.btn-rechazar:hover,
+.btn-iniciar:hover,
+.btn-revision:hover,
+.btn-retomar:hover,
+.btn-completar:hover,
+.btn-reseñar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .pedido-card {
+        flex-direction: column;
+    }
+    .pedido-imagen {
+        width: 100%;
+        height: 150px;
+    }
+}
+
+/* ============================================
+   MODAL DE MENSAJES (estilo basket)
+   ============================================ */
+
+.modal-mensaje-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(58, 10, 90, 0.3);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s;
+}
+
+.modal-mensaje-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-mensaje-box {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 28px;
+    padding: 2rem 2.5rem;
+    box-shadow: 0 16px 56px rgba(140, 60, 180, 0.18), 0 4px 16px rgba(0, 0, 0, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    text-align: center;
+    max-width: 380px;
+    width: 90%;
+    animation: fadeUpModal 0.3s ease both;
+}
+
+@keyframes fadeUpModal {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-mensaje-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.modal-mensaje-titulo {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #3a0a5a;
+    margin-bottom: 0.75rem;
+}
+
+.modal-mensaje-texto {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    color: #6a3a8a;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.modal-mensaje-boton {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    background: linear-gradient(90deg, #e8d87a, #f0e89a);
+    color: #7a6010;
+    border: none;
+    border-radius: 50px;
+    padding: 10px 28px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.modal-mensaje-boton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(200, 180, 60, 0.4);
+}

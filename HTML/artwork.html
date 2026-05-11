@@ -32,7 +32,6 @@
     <!-- IZQUIERDA: imagen -->
     <div class="artwork-left">
       <div class="artwork-img-wrap">
-        <!-- Reemplaza este div con un <img> cuando tengas la imagen real -->
         <div class="artwork-img"></div>
 
         <div class="artwork-img-actions">
@@ -128,6 +127,10 @@
           <span class="material-symbols-outlined">chat_bubble</span>
           Enviar mensaje al artista
         </button>
+        <button class="btn-editar" id="btnEditar" style="display: none; margin-top: 10px; width: 100%;">
+    <span class="material-symbols-outlined">edit</span>
+    Editar publicación
+</button>
       </div>
 
     </div>
@@ -146,6 +149,47 @@
 
     <script src="../js/artwork.js"></script>
 
+<!-- MODAL DE EDICIÓN -->
+<div class="edit-modal-overlay" id="editModal">
+    <div class="edit-modal-box">
+        <h3>Editar publicación</h3>
+        <form id="editForm">
+            <div class="field">
+                <label>Título</label>
+                <input type="text" id="editTitulo" required>
+            </div>
+            <div class="field">
+                <label>Categoría</label>
+                <select id="editCategoria" required></select>
+            </div>
+            <div class="field">
+                <label>Descripción</label>
+                <textarea id="editDescripcion" required></textarea>
+            </div>
+            <div class="field">
+                <label>Términos y condiciones</label>
+                <textarea id="editTerminos" required></textarea>
+            </div>
+            <div class="field">
+                <label>Precio ($)</label>
+                <input type="number" id="editPrecio" step="0.01" min="0" required>
+            </div>
+            <div class="field">
+                <label>Método de pago</label>
+                <select id="editMetodoPago" required>
+                    <option value="">Selecciona un método</option>
+                    <option value="Tarjeta de crédito">Tarjeta de crédito</option>
+                    <option value="Tarjeta de débito">Tarjeta de débito</option>
+                    <option value="PayPal">PayPal</option>
+                </select>
+            </div>
+            <div class="edit-actions">
+                <button type="button" class="btn-cancelar-editar" id="btnCancelarEditar">Cancelar</button>
+                <button type="button" class="btn-guardar" id="btnGuardarEditar">Guardar cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 </body>
 </html>
