@@ -112,6 +112,7 @@ CHANGE FechaNacimiento fecha_nacimiento DATE;
 
 
 select * from Usuario;
+select * from Usuario;
 select * from publicaciones;
 
 INSERT INTO categorias (Nombre) VALUES ('Ilustracion'), ('Moda'), ('Fotografia'), ('Diseño'), ('Tatuajes'),('Animacion'),('Diseño de Personajes') ;
@@ -129,3 +130,9 @@ ALTER TABLE usuario
 ADD COLUMN google_id VARCHAR(50) NULL AFTER Correo,
 ADD COLUMN foto_google TEXT NULL AFTER google_id,
 MODIFY COLUMN contrasena VARCHAR(255) NULL;  
+
+-- inicio de sesion con facebook --
+ALTER TABLE usuario
+ADD facebook_id VARCHAR(255),
+ADD foto_facebook LONGTEXT,
+MODIFY COLUMN foto_google LONGTEXT NULL;  
