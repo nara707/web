@@ -144,7 +144,7 @@
     .tabs-container {
       justify-content: flex;
       gap: 1rem;
-      margin: 1.5rem 0 2rem;
+      margin: 1.0rem 0 2rem;
       display: flex;
       flex-wrap: wrap;
       background: white;
@@ -461,6 +461,17 @@ font-size: 0.7rem;
         grid-template-columns: 1fr;
       }
     }
+
+    /* Efecto hover en el select */
+.estado-select:hover {
+    border-color: #d899e8 !important;
+}
+
+/* Color de fondo de las opciones desplegables */
+.estado-select option {
+    background: #2a1f4a;
+    color: #e0d8f0;
+}
 
  /* ============================================
    ESTILOS PARA VENTAS Y COMPRAS (como Basket.css)
@@ -961,6 +972,7 @@ font-size: 0.7rem;
     box-shadow: 0 4px 14px rgba(200, 180, 60, 0.4);
 }
 
+<<<<<<< HEAD
 .btn-chat-pedido {
     background: transparent;
     border: 2px solid #b05ad0;
@@ -992,3 +1004,5 @@ font-size: 0.7rem;
     color: #f0c8a0;
     transform: scale(1.15);
 }
+=======
+>>>>>>> c238e044f5896b0c108680ef385e0d25e5a0a5ec

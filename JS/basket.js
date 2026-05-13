@@ -110,9 +110,7 @@ function renderizarFiltros() {
         { id: 'pendiente',   nombre: 'Pendientes' },
         { id: 'aprobado',    nombre: 'Aprobados' },
         { id: 'En proceso',  nombre: 'En proceso' },
-        { id: 'Revision',    nombre: 'En revisión' },
-        { id: 'Completado',  nombre: 'Completados' },
-        { id: 'Cancelado',   nombre: 'Cancelados' }
+        { id: 'Revision',    nombre: 'En revisión' }
     ];
 
     filtrosContainer.innerHTML = filtros.map(f => `
@@ -145,9 +143,11 @@ function renderizarPedidos() {
     const container = document.querySelector('.basket-container');
     if (!container) return;
 
-    let pedidosFiltrados = todosLosPedidos;
+    // Excluir pedidos cancelados para que no aparezcan nunca
+    let pedidosFiltrados = todosLosPedidos.filter(p => p.Estado !== 'Cancelado' && p.Estado !== 'Completado');
+
     if (filtroActual !== 'todos') {
-        pedidosFiltrados = todosLosPedidos.filter(p => p.Estado === filtroActual);
+        pedidosFiltrados = pedidosFiltrados.filter(p => p.Estado === filtroActual);
     }
 
     if (pedidosFiltrados.length === 0) {
