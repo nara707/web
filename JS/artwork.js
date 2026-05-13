@@ -14,8 +14,6 @@ function actualizarNavbar() {
   }
 }
 
-
-
 // ── Estrellas ──
 const sc=['#e8d87a','#d899e8','#ffffff','#f0c8a0','#b05ad0'];
 function rc(){return sc[Math.floor(Math.random()*sc.length)];}
@@ -44,17 +42,280 @@ function toggleDesc() {
   b.textContent = expanded ? 'Leer menos' : 'Leer más';
 }
 
-// ── Cargar datos de la publicación ──
+// ============================================
+// VARIABLES GLOBALES PARA EDICIÓN
+// ============================================
+let publicacionActual = null;
+let categoriasLista = [];
+
+// ============================================
+// MODAL DE MENSAJES (feedback)
+// ============================================
+function mostrarModalMensaje(icono, titulo, texto, esError = false) {
+    let modal = document.getElementById('modalMensajeTemp');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalMensajeTemp';
+        modal.className = 'modal-mensaje-overlay';
+        modal.innerHTML = `
+            <div class="modal-mensaje-box">
+                <div class="modal-mensaje-icon" id="modalIconTemp">🌸</div>
+                <h3 class="modal-mensaje-titulo" id="modalTituloTemp">Éxito</h3>
+                <p class="modal-mensaje-texto" id="modalTextoTemp">Operación realizada</p>
+                <button class="modal-mensaje-boton" id="modalCerrarTemp">Aceptar</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    const modalIcon = document.getElementById('modalIconTemp');
+    const modalTitulo = document.getElementById('modalTituloTemp');
+    const modalTexto = document.getElementById('modalTextoTemp');
+    const modalCerrarBtn = document.getElementById('modalCerrarTemp');
+    
+    modalIcon.innerHTML = icono;
+    modalTitulo.textContent = titulo;
+    modalTexto.textContent = texto;
+    
+    if (esError) {
+        modalCerrarBtn.style.background = 'linear-gradient(90deg, #d07070, #b05050)';
+        modalCerrarBtn.style.color = 'white';
+    } else {
+        modalCerrarBtn.style.background = 'linear-gradient(90deg, #e8d87a, #f0e89a)';
+        modalCerrarBtn.style.color = '#7a6010';
+    }
+    
+    modal.classList.add('show');
+    
+    const cerrar = () => {
+        modal.classList.remove('show');
+        modalCerrarBtn.removeEventListener('click', cerrar);
+    };
+    
+    modalCerrarBtn.addEventListener('click', cerrar);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) cerrar();
+    });
+    
+    setTimeout(() => {
+        if (modal.classList.contains('show')) cerrar();
+    }, 2500);
+}
+
+// ============================================
+// FUNCIONES DE EDICIÓN
+// ============================================
+
+// Cargar categorías para el select del modal
+async function cargarCategoriasParaEdit() {
+    try {
+        const response = await fetch('/categorias');
+        categoriasLista = await response.json();
+        
+        const select = document.getElementById('editCategoria');
+        if (select && select.children.length <= 1) {
+            select.innerHTML = '<option value="">Selecciona una categoría</option>';
+            categoriasLista.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.ID_Categoria;
+                option.textContent = cat.Nombre;
+                select.appendChild(option);
+            });
+        }
+    } catch (err) {
+        console.error("Error al cargar categorías:", err);
+    }
+}
+
+// Mostrar modal de edición
+async function mostrarModalEdicion(pub) {
+    await cargarCategoriasParaEdit();
+    
+    document.getElementById('editTitulo').value = pub.Titulo || '';
+    document.getElementById('editDescripcion').value = pub.Descripcion || '';
+    document.getElementById('editTerminos').value = pub.TerminosCondiciones || '';
+    document.getElementById('editPrecio').value = pub.Precio || '';
+    document.getElementById('editMetodoPago').value = pub.MetodoPago || '';
+    
+    const selectCategoria = document.getElementById('editCategoria');
+    if (selectCategoria && pub.ID_Categoria) {
+        selectCategoria.value = pub.ID_Categoria;
+    }
+    
+    document.getElementById('editModal').classList.add('show');
+}
+
+// Cerrar modal de edición
+function cerrarModalEdicion() {
+    document.getElementById('editModal').classList.remove('show');
+}
+
+// ============================================
+// MODAL DE CONFIRMACIÓN
+// ============================================
+
+let confirmacionCallback = null;
+
+function mostrarModalConfirmacion(icono, titulo, texto, onConfirm) {
+    const modal = document.getElementById('modalConfirmacion');
+    const iconEl = document.getElementById('confirmIcon');
+    const tituloEl = document.getElementById('confirmTitulo');
+    const textoEl = document.getElementById('confirmTexto');
+    const btnAceptar = document.getElementById('btnAceptarConfirmacion');
+    const btnCancelar = document.getElementById('btnCancelarConfirmacion');
+    
+    iconEl.innerHTML = icono;
+    tituloEl.textContent = titulo;
+    textoEl.textContent = texto;
+    
+    // Guardar callback
+    confirmacionCallback = onConfirm;
+    
+    // Configurar eventos temporales
+    const aceptarHandler = () => {
+        modal.classList.remove('show');
+        if (confirmacionCallback) confirmacionCallback(true);
+        limpiarEventos();
+    };
+    
+    const cancelarHandler = () => {
+        modal.classList.remove('show');
+        if (confirmacionCallback) confirmacionCallback(false);
+        limpiarEventos();
+    };
+    
+    const cerrarExterno = (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('show');
+            if (confirmacionCallback) confirmacionCallback(false);
+            limpiarEventos();
+        }
+    };
+    
+    function limpiarEventos() {
+        btnAceptar.removeEventListener('click', aceptarHandler);
+        btnCancelar.removeEventListener('click', cancelarHandler);
+        modal.removeEventListener('click', cerrarExterno);
+        confirmacionCallback = null;
+    }
+    
+    btnAceptar.addEventListener('click', aceptarHandler);
+    btnCancelar.addEventListener('click', cancelarHandler);
+    modal.addEventListener('click', cerrarExterno);
+    
+    modal.classList.add('show');
+}
+
+// ============================================
+// GUARDAR EDICIÓN CON CONFIRMACIÓN
+// ============================================
+
+async function guardarEdicion() {
+    const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+    if (!usuario) {
+        window.location.href = '/login';
+        return;
+    }
+    
+    const id = new URLSearchParams(window.location.search).get('id');
+    
+    const precioNuevo = parseFloat(document.getElementById('editPrecio').value);
+    const precioAnterior = publicacionActual?.Precio != null ? parseFloat(publicacionActual.Precio) : null;
+
+    const datos = {
+        titulo: document.getElementById('editTitulo').value.trim(),
+        descripcion: document.getElementById('editDescripcion').value.trim(),
+        terminos: document.getElementById('editTerminos').value.trim(),
+        precio: precioNuevo,
+        id_categoria: document.getElementById('editCategoria').value,
+        metodo_pago: document.getElementById('editMetodoPago').value,
+        id_usuario: usuario.id
+    };
+    
+    if (!datos.titulo || !datos.descripcion || !datos.precio || !datos.id_categoria) {
+        mostrarModalMensaje('⚠️', 'Campos incompletos', 'Por favor completa todos los campos', true);
+        return;
+    }
+    
+    // Si va a cambiar el precio, mostrar confirmación
+  if (precioAnterior !== null && precioNuevo.toFixed(2) !== precioAnterior.toFixed(2)) {
+        const mensajeConfirmacion = `⚠️ Estás cambiando el precio de $${precioAnterior.toFixed(2)} a $${precioNuevo.toFixed(2)}.\n\nSi hay pedidos activos (aprobados, en proceso o en revisión), NO se podrá cambiar el precio.\n\n¿Deseas continuar?`;
+        
+        mostrarModalConfirmacion('💰', 'Confirmar cambio de precio', mensajeConfirmacion, async (confirmado) => {
+            if (confirmado) {
+                await ejecutarGuardado(datos, id);
+            }
+        });
+    } else {
+        await ejecutarGuardado(datos, id);
+    }
+}
+
+async function ejecutarGuardado(datos, id) {
+    console.log("🚀 ejecutarGuardado llamado con id:", id, "datos:", datos);  // ← agrega esto
+        console.log("🌐 Haciendo fetch a:", `/api/publicacion/${id}`);
+    const btnGuardar = document.getElementById('btnGuardarEditar');
+    const originalText = btnGuardar.textContent;
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = 'Guardando...';
+    
+const response = await fetch(`/api/publicacion/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos)
+});
+
+console.log("📡 Response status:", response.status); // ← agrega esto
+const data = await response.json();
+console.log("📡 Response data:", data); // ← agrega esto
+
+    try {
+        const response = await fetch(`/api/publicacion/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            mostrarModalMensaje('✅', '¡Publicación actualizada!', 'Los cambios se han guardado correctamente');
+            cerrarModalEdicion();
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            let mensajeError = data.msg || 'No se pudo actualizar';
+            mostrarModalMensaje('⚠️', 'Error', mensajeError, true);
+            btnGuardar.disabled = false;
+            btnGuardar.textContent = originalText;
+        }
+    } catch (err) {
+        console.error("Error al guardar:", err);
+        mostrarModalMensaje('⚠️', 'Error de conexión', 'No se pudo conectar con el servidor', true);
+        btnGuardar.disabled = false;
+        btnGuardar.textContent = originalText;
+    }
+}
+
+
+
+// ============================================
+// CARGAR DATOS DE LA PUBLICACIÓN
+// ============================================
 async function cargarPublicacion() {
   const params = new URLSearchParams(window.location.search);
   const id = params.get('id');
 
-  if (!id) return; // si no hay ID, deja el HTML estático tal cual
+  if (!id) return;
 
   try {
     const res = await fetch(`/api/publicacion/${id}`);
     if (!res.ok) return;
     const pub = await res.json();
+    
+    // Guardar publicación actual para edición
+    publicacionActual = pub;
 
     // Imagen principal
     const artImg = document.querySelector('.artwork-img');
@@ -105,38 +366,84 @@ async function cargarPublicacion() {
     }
 
     // ── Redirigir la tarjeta del artista al perfil correcto ──
-const usuarioSesion = JSON.parse(sessionStorage.getItem('usuario'));
-const esPropio = usuarioSesion && usuarioSesion.correo === pub.CorreoArtista;
+    const usuarioSesion = JSON.parse(sessionStorage.getItem('usuario'));
+    const esPropio = usuarioSesion && usuarioSesion.correo === pub.CorreoArtista;
 
-// Link de la tarjeta del artista
-const artistCard = document.querySelector('.artist-card');
-if (artistCard) {
-    if (esPropio) {
-        artistCard.href = '/mi-perfil';
-    } else {
-        artistCard.href = `/perfil-usuario?id=${pub.ID_Usuario_Artista}`;
+    // Link de la tarjeta del artista
+    const artistCard = document.querySelector('.artist-card');
+    if (artistCard) {
+        if (esPropio) {
+            artistCard.href = '/mi-perfil';
+        } else {
+            artistCard.href = `/perfil-usuario?id=${pub.ID_Usuario_Artista}`;
+        }
     }
-}
 
-// Ocultar botón de comisionar si es arte propio
-const btnComisionar = document.querySelector('.btn-comisionar');
-if (btnComisionar && esPropio) {
-    btnComisionar.style.display = 'none';
-} else if (btnComisionar) {
-    // Pasar id_publicacion, id_artista y precio por URL
-    btnComisionar.onclick = () => {
-        window.location.href = `/comisionar?pub=${pub.ID_Publicacion}&artista=${pub.ID_Usuario_Artista}&precio=${pub.Precio}&metodo=${encodeURIComponent(pub.MetodoPago || '')}`;
-    };
-}
-// Ocultar botón de enviar mensaje si es arte propio
-const btnmensaje = document.querySelector('.btn-mensaje');
-if (btnmensaje && esPropio) {
-    btnmensaje.style.display = 'none';
-}
+    // Ocultar botón de comisionar si es arte propio
+    const btnComisionar = document.querySelector('.btn-comisionar');
+    if (btnComisionar && esPropio) {
+        btnComisionar.style.display = 'none';
+    } else if (btnComisionar) {
+        btnComisionar.onclick = () => {
+            window.location.href = `/comisionar?pub=${pub.ID_Publicacion}&artista=${pub.ID_Usuario_Artista}&precio=${pub.Precio}&metodo=${encodeURIComponent(pub.MetodoPago || '')}`;
+        };
+    }
+    
+    // Ocultar botón de enviar mensaje si es arte propio
+    const btnmensaje = document.querySelector('.btn-mensaje');
+    if (btnmensaje && esPropio) {
+        btnmensaje.style.display = 'none';
+    }
+    
+    // ── Mostrar botón de editar si es el propietario ──
+    const btnEditar = document.getElementById('btnEditar');
+    if (btnEditar && esPropio) {
+        btnEditar.style.display = 'flex';
+        btnEditar.style.alignItems = 'center';
+        btnEditar.style.justifyContent = 'center';
+        btnEditar.style.gap = '8px';
+        btnEditar.style.background = '#2a0a3a';
+        btnEditar.style.color = 'white';
+        btnEditar.style.border = 'none';
+        btnEditar.style.borderRadius = '50px';
+        btnEditar.style.padding = '14px';
+        btnEditar.style.fontFamily = "'Bricolage Grotesque', sans-serif";
+        btnEditar.style.fontWeight = '800';
+        btnEditar.style.cursor = 'pointer';
+        btnEditar.style.transition = 'transform 0.15s';
+        btnEditar.onclick = () => {
+            mostrarModalEdicion(pub);
+        };
+    }
 
   } catch (err) {
     console.error('Error al cargar publicación:', err);
   }
 }
 
-document.addEventListener('DOMContentLoaded', cargarPublicacion);
+
+
+// ============================================
+// INICIALIZACIÓN
+// ============================================
+document.addEventListener('DOMContentLoaded', () => {
+   console.log("🔍 btnGuardarEditar encontrado:", document.getElementById('btnGuardarEditar')); // ← agrega esto
+    cargarPublicacion();
+    
+    // Configurar eventos del modal de edición
+    const btnCancelarEditar = document.getElementById('btnCancelarEditar');
+    const btnGuardarEditar = document.getElementById('btnGuardarEditar');
+    const editModal = document.getElementById('editModal');
+    
+    if (btnCancelarEditar) {
+        btnCancelarEditar.addEventListener('click', cerrarModalEdicion);
+    }
+    if (btnGuardarEditar) {
+        btnGuardarEditar.addEventListener('click', guardarEdicion);
+    }
+    if (editModal) {
+        editModal.addEventListener('click', (e) => {
+            if (e.target === editModal) cerrarModalEdicion();
+        });
+    }
+});

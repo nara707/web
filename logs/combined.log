@@ -3,3 +3,92 @@
 [2026-05-06 21:31:32] INFO: BODY:
 [2026-05-06 21:31:32] INFO: ID_USUARIO:
 [2026-05-06 21:31:32] INFO: Usuario 4 creó publicación "Personajes"
+[2026-05-12 18:32:22] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-12 18:32:23] INFO: Conectado a la base de datos MySQL
+[2026-05-12 18:33:01] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-12 18:33:01] INFO: Conectado a la base de datos MySQL
+[2026-05-12 18:33:22] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-12 18:33:22] INFO: Conectado a la base de datos MySQL
+[2026-05-12 19:30:08] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-12 19:30:08] INFO: Conectado a la base de datos MySQL
+[2026-05-12 19:31:56] INFO: BODY RECIBIDO: {"id_usuario":4,"id_artista":"1","id_publicacion":"3","personalizacion":"Estilo: Minimalista | Formato: Digital (PNG/JPG) | Descripción: Quiero una ilustracion para mi libro","total":"10000","metodo_pago":"Tarjeta de crédito"}
+[2026-05-12 19:31:56] ERROR: Error al crear pedido: Unknown column 'ID_Publicacion' in 'field list'
+[2026-05-12 19:36:25] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-12 19:36:25] INFO: Conectado a la base de datos MySQL
+[2026-05-12 19:38:02] INFO: Intento de login: r_guardiola@zoe.com
+[2026-05-12 19:43:08] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-12 19:43:09] INFO: Conectado a la base de datos MySQL
+[2026-05-12 20:29:38] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-12 20:29:38] INFO: Conectado a la base de datos MySQL
+[2026-05-12 20:54:15] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-12 20:54:15] INFO: Conectado a la base de datos MySQL
+[2026-05-12 20:56:58] INFO: BODY RECIBIDO: {"id_usuario":4,"id_artista":"1","id_publicacion":"4","personalizacion":"Estilo: Abstracto | Formato: Digital (PNG/JPG) | Descripción: quiero dos personajes con un fondo de colores calidos.","total":"200","metodo_pago":"Tarjeta de crédito"}
+[2026-05-12 22:29:00] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-12 22:29:00] INFO: Conectado a la base de datos MySQL
+[2026-05-12 23:00:03] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-12 23:00:03] INFO: Conectado a la base de datos MySQL
+[2026-05-12 23:07:02] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-12 23:07:02] INFO: Conectado a la base de datos MySQL
+[2026-05-12 23:09:01] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-12 23:09:01] INFO: Conectado a la base de datos MySQL
+[2026-05-12 23:19:38] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-12 23:19:38] INFO: Conectado a la base de datos MySQL
+[2026-05-12 23:54:01] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-12 23:54:01] INFO: Conectado a la base de datos MySQL
+[2026-05-13 00:14:31] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 00:14:31] INFO: Conectado a la base de datos MySQL
+[2026-05-13 00:15:46] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 00:15:46] INFO: Conectado a la base de datos MySQL
+[2026-05-13 00:24:08] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 00:24:08] INFO: Conectado a la base de datos MySQL
+[2026-05-13 00:24:35] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 00:24:35] INFO: Conectado a la base de datos MySQL
+[2026-05-13 00:49:18] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 00:49:18] INFO: Conectado a la base de datos MySQL
+[2026-05-13 00:55:42] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 00:55:42] INFO: Conectado a la base de datos MySQL
+[2026-05-13 00:56:59] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 00:56:59] INFO: Conectado a la base de datos MySQL
+[2026-05-13 01:03:58] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 01:03:58] INFO: Conectado a la base de datos MySQL
+[2026-05-13 01:20:03] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 01:20:03] INFO: Conectado a la base de datos MySQL
+[2026-05-13 01:20:49] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 01:20:49] INFO: Conectado a la base de datos MySQL
+[2026-05-13 01:26:16] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 01:26:16] INFO: Conectado a la base de datos MySQL
+[2026-05-13 01:32:48] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 01:32:48] INFO: Conectado a la base de datos MySQL
+[2026-05-13 01:34:58] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 01:34:58] INFO: Conectado a la base de datos MySQL
+[2026-05-13 01:40:39] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 01:40:39] INFO: Conectado a la base de datos MySQL
+[2026-05-13 01:54:16] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 01:54:16] INFO: Conectado a la base de datos MySQL
+[2026-05-13 02:01:41] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 02:01:41] INFO: Conectado a la base de datos MySQL
+[2026-05-13 09:02:53] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 09:02:54] INFO: Conectado a la base de datos MySQL
+[2026-05-13 09:04:27] INFO: Intento de login: r_guardiola@zoe.com
+[2026-05-13 09:19:19] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 09:19:19] INFO: Conectado a la base de datos MySQL
+[2026-05-13 09:53:13] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 09:53:13] INFO: Conectado a la base de datos MySQL
+[2026-05-13 09:56:32] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 09:56:32] INFO: Conectado a la base de datos MySQL
+[2026-05-13 09:58:21] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 09:58:21] INFO: Conectado a la base de datos MySQL
+[2026-05-13 10:10:00] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 10:10:00] INFO: Conectado a la base de datos MySQL
+[2026-05-13 10:23:12] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 10:23:12] INFO: Conectado a la base de datos MySQL
+[2026-05-13 10:30:32] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 10:30:32] INFO: Conectado a la base de datos MySQL
+[2026-05-13 10:31:43] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 10:31:43] INFO: Conectado a la base de datos MySQL
+[2026-05-13 10:44:59] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 10:44:59] INFO: Conectado a la base de datos MySQL
+[2026-05-13 10:45:52] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 10:45:52] INFO: Conectado a la base de datos MySQL
+[2026-05-13 10:54:42] INFO: Servidor corriendo en http://localhost:3001
+[2026-05-13 10:54:42] INFO: Conectado a la base de datos MySQL

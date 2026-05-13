@@ -136,3 +136,18 @@ ALTER TABLE usuario
 ADD facebook_id VARCHAR(255),
 ADD foto_facebook LONGTEXT,
 MODIFY COLUMN foto_google LONGTEXT NULL;  
+
+DESCRIBE pedidos;
+SHOW COLUMNS FROM pedidos LIKE '%publicacion%';
+
+ALTER TABLE Pedidos ADD COLUMN ID_Publicacion INT NOT NULL AFTER ID_Artista;
+ALTER TABLE Pedidos ADD FOREIGN KEY (ID_Publicacion) REFERENCES Publicaciones(ID_Publicacion);
+
+CREATE TABLE usuario_tags (
+    ID_Tag INT AUTO_INCREMENT PRIMARY KEY,
+    ID_Usuario INT NOT NULL,
+    Nombre VARCHAR(50) NOT NULL,
+    FOREIGN KEY (ID_Usuario) REFERENCES usuario(ID_Usuario) ON DELETE CASCADE
+);
+
+select * from usuario_tags;
