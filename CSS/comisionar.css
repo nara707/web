@@ -184,3 +184,16 @@
     .success-overlay p { font-family:'Bricolage Grotesque',sans-serif; color:#5a1a7a; font-weight:800; font-size:1.1rem; }
     .success-overlay span { font-size:.85rem; color:#9a6ab0; }
     @keyframes popIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+
+
+    .nav-logout {
+    cursor: pointer;
+    color: #d899e8;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s, transform 0.2s;
+}
+.nav-logout:hover {
+    color: #f0c8a0;
+    transform: scale(1.15);
+}

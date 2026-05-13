@@ -26,7 +26,7 @@ app.use('/HTML', express.static(path.join(__dirname, 'HTML')));
 const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
-    password: '12345',
+    password: '',
     database: 'pia_pw2',
     port: 3306
 });
@@ -48,7 +48,6 @@ app.post('/usuario/registrar', upload.single('foto'), async (req, res) => {
     }
 
     try {
-        // Verificar si el correo ya existe
         const [usuariosEncontrados] = await db.promise().query(
             'SELECT Correo FROM Usuario WHERE Correo = ?',
             [correo]
@@ -58,11 +57,9 @@ app.post('/usuario/registrar', upload.single('foto'), async (req, res) => {
             return res.json({ msg: "Correo ya registrado" });
         }
 
-        // Procesar imagen a Base64
         const fotoBuffer = req.file.buffer.toString('base64');
         const dataUri = `data:${req.file.mimetype};base64,${fotoBuffer}`;
 
-        // Insertar usuario 
         const queryInsert = 'INSERT INTO Usuario (Nombre, Correo, contrasena, Biografia, fdp, fecha_nacimiento) VALUES (?, ?, ?, ?, ?, ?)';
 
         await db.promise().query(queryInsert, [
@@ -74,18 +71,21 @@ app.post('/usuario/registrar', upload.single('foto'), async (req, res) => {
             fecha_nacimiento
         ]);
 
+        // Fix: obtener el ID del usuario recién registrado
+        const [rows] = await db.promise().query(
+            'SELECT ID_Usuario FROM Usuario WHERE Correo = ?', [correo]
+        );
+
         return res.json({
             msg: "Registrado",
-            //devolvemos todos los datos del usuario para el session storage usando las variables definidas en este este endpoint
+            //devolvemos todos los datos del usuario para el session storage
             info: {
-                
-                id: usuario.ID_Usuario, 
+                id: rows[0].ID_Usuario,
                 nombre: nombre,
                 correo: correo,
                 descripcion: biografia || 'Sin biografía',
                 fdn: fecha_nacimiento,
                 foto: dataUri
-
             }
         });
 
@@ -103,7 +103,6 @@ app.post('/usuario/login', async (req, res) => {
         return res.json({ msg: "Error: Campos incompletos" });
     }
 
-
     db.query(
         'SELECT * FROM usuario WHERE correo = ? AND contrasena = ?',
         [correo, contrasena],
@@ -115,19 +114,16 @@ app.post('/usuario/login', async (req, res) => {
 
             if (result.length > 0) {
                 const usuario = result[0];
-
-
                 return res.json({
                     msg: "Registrado",
                     //traemos todos los datos del usuario para el session storage
                     info: {
-                        id: usuario.ID_Usuario, 
+                        id: usuario.ID_Usuario,
                         nombre: usuario.Nombre,
                         correo: usuario.Correo,
                         descripcion: usuario.Biografia,
                         fdn: usuario.fecha_nacimiento,
                         foto: usuario.fdp
-
                     }
                 });
             } else {
@@ -173,7 +169,6 @@ app.get('/categorias', async (req, res) => {
         const [categorias] = await db.promise().query(
             'SELECT ID_Categoria, Nombre FROM categorias'
         );
-
         res.json(categorias);
     } catch (error) {
         console.error(error);
@@ -200,7 +195,7 @@ app.post('/publicaciones/crear', upload.single('imagen'), async (req, res) => {
         console.log("ID_USUARIO:", id_usuario);
         const queryPublicacion = `
           INSERT INTO publicaciones (ID_Usuario, Titulo, Descripcion, Precio, TerminosCondiciones, FechaPublicacion, Activa, ID_Categoria, MetodoPago)
-    VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
         `;
         const [result] = await db.promise().query(queryPublicacion, [
             id_usuario, titulo, descripcion,
@@ -210,13 +205,12 @@ app.post('/publicaciones/crear', upload.single('imagen'), async (req, res) => {
 
         const id_publicacion = result.insertId;
 
-        //Insertar la imagen en imagenes_publicacion
         const imagenBase64 = req.file.buffer.toString('base64');
         const queryImagen = `
             INSERT INTO imagenes_publicacion (ID_Publicacion, URL_Imagen, Portada, Orden)
             VALUES (?, ?, 1, 1)
         `;
-        await db.promise().query(queryImagen, [id_publicacion, imagenBase64,]);
+        await db.promise().query(queryImagen, [id_publicacion, imagenBase64]);
 
         return res.status(201).json({ msg: "Publicación creada con éxito", id_publicacion });
 
@@ -271,7 +265,6 @@ app.get('/publicaciones/categoria/:id_categoria', async (req, res) => {
 
         let params = [];
 
-        // si NO es all, filtra por categoría
         if (id_categoria !== 'all') {
             query += ` AND p.ID_Categoria = ?`;
             params.push(id_categoria);
@@ -280,7 +273,6 @@ app.get('/publicaciones/categoria/:id_categoria', async (req, res) => {
         query += ` ORDER BY p.FechaPublicacion DESC`;
 
         const [rows] = await db.promise().query(query, params);
-
         res.json(rows);
 
     } catch (err) {
@@ -302,7 +294,6 @@ app.get('/publicaciones/random', async (req, res) => {
             ORDER BY RAND()
             LIMIT 4
         `);
-
         res.json(rows);
     } catch (err) {
         res.status(500).json({ msg: "Error" });
@@ -379,14 +370,32 @@ app.post('/pedidos/crear', async (req, res) => {
     }
 
     try {
+        await db.promise().beginTransaction();
+
         const [result] = await db.promise().query(
             `INSERT INTO pedidos (ID_Usuario, ID_Artista, ID_Publicacion, Personalizacion, Total, MetodoPago, Estado)
              VALUES (?, ?, ?, ?, ?, ?, 'pendiente')`,
             [id_usuario, id_artista, id_publicacion || null, personalizacion || '', total, metodo_pago || '']
         );
 
-        return res.status(201).json({ msg: "Pedido creado", id_pedido: result.insertId });
+        const id_pedido = result.insertId;
+
+        await db.promise().query(
+            `INSERT INTO historial (ID_Usuario, ID_Pedido, Tipo) VALUES (?, ?, 'compra')`,
+            [id_usuario, id_pedido]
+        );
+
+        await db.promise().query(
+            `INSERT INTO historial (ID_Usuario, ID_Pedido, Tipo) VALUES (?, ?, 'venta')`,
+            [id_artista, id_pedido]
+        );
+
+        await db.promise().commit();
+
+        return res.status(201).json({ msg: "Pedido creado", id_pedido });
+
     } catch (err) {
+        await db.promise().rollback();
         console.error("Error al crear pedido:", err);
         return res.status(500).json({ msg: "Error en el servidor" });
     }
@@ -408,6 +417,7 @@ app.get('/pedidos/usuario/:id_usuario', async (req, res) => {
                 p.MetodoPago,
                 p.Fecha_Pedido,
                 p.ID_Publicacion,
+                          p.ID_Artista, 
                 pub.Titulo AS PublicacionTitulo,
                 pub.ID_Categoria,
                 art.Nombre AS ArtistaNombre,
@@ -464,57 +474,11 @@ app.get('/pedidos/artista/:id_artista', async (req, res) => {
     }
 });
 
-// --- CREAR PEDIDO 
-app.post('/pedidos/crear', async (req, res) => {
-    const { id_usuario, id_artista, id_publicacion, personalizacion, total, metodo_pago } = req.body;
-
-    if (!id_usuario || !id_artista || !total) {
-        return res.status(400).json({ msg: "Faltan campos obligatorios" });
-    }
-
-    try {
-        // Iniciar transacción
-        await db.promise().beginTransaction();
-
-        // 1. Insertar pedido
-        const [result] = await db.promise().query(
-            `INSERT INTO pedidos (ID_Usuario, ID_Artista, ID_Publicacion, Personalizacion, Total, MetodoPago, Estado)
-             VALUES (?, ?, ?, ?, ?, ?, 'pendiente')`,
-            [id_usuario, id_artista, id_publicacion || null, personalizacion || '', total, metodo_pago || '']
-        );
-
-        const id_pedido = result.insertId;
-
-        // 2. Registrar en Historial para el CLIENTE (compra)
-        await db.promise().query(
-            `INSERT INTO historial (ID_Usuario, ID_Pedido, Tipo) VALUES (?, ?, 'compra')`,
-            [id_usuario, id_pedido]
-        );
-
-        // 3. Registrar en Historial para el ARTISTA (venta)
-        await db.promise().query(
-            `INSERT INTO historial (ID_Usuario, ID_Pedido, Tipo) VALUES (?, ?, 'venta')`,
-            [id_artista, id_pedido]
-        );
-
-        // Confirmar transacción
-        await db.promise().commit();
-
-        return res.status(201).json({ msg: "Pedido creado", id_pedido });
-
-    } catch (err) {
-        await db.promise().rollback();
-        console.error("Error al crear pedido:", err);
-        return res.status(500).json({ msg: "Error en el servidor" });
-    }
-});
-
 // --- CANCELAR PEDIDO (solo si está pendiente o aprobado) ---
 app.put('/pedidos/:id/cancelar', async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Verificar estado actual
         const [pedido] = await db.promise().query(
             'SELECT Estado FROM pedidos WHERE ID_Pedido = ?',
             [id]
@@ -658,7 +622,6 @@ app.put('/pedidos/:id/estado', async (req, res) => {
             return res.status(404).json({ msg: "Pedido no encontrado" });
         }
 
-        // Validar transiciones permitidas
         const estadoActual = pedido[0].Estado;
         
         if (estadoActual === 'Completado' || estadoActual === 'Cancelado') {
@@ -688,7 +651,6 @@ app.put('/api/publicacion/:id', async (req, res) => {
     }
 
     try {
-        // 1. Verificar que la publicación pertenece al usuario
         const [publicacion] = await db.promise().query(
             'SELECT ID_Usuario, Precio FROM publicaciones WHERE ID_Publicacion = ?',
             [id]
@@ -702,7 +664,6 @@ app.put('/api/publicacion/:id', async (req, res) => {
             return res.status(403).json({ msg: "No tienes permiso para editar esta publicación" });
         }
 
-        // 2. Bloquear si hay pedidos activos
         const [pedidosActivos] = await db.promise().query(`
             SELECT ID_Pedido, Estado 
             FROM pedidos 
@@ -719,7 +680,6 @@ app.put('/api/publicacion/:id', async (req, res) => {
             });
         }
 
-        // 3. Actualizar
         await db.promise().query(`
             UPDATE publicaciones 
             SET Titulo = ?, Descripcion = ?, Precio = ?, TerminosCondiciones = ?, ID_Categoria = ?, MetodoPago = ?
@@ -735,16 +695,167 @@ app.put('/api/publicacion/:id', async (req, res) => {
     }
 });
 
+// ============================================
+// CHAT EN TIEMPO REAL CON SOCKET.IO
+// ============================================
 
+// Obtener conversaciones activas del usuario
+app.get('/chat/conversaciones', async (req, res) => {
+    const { id_usuario } = req.query;
+    if (!id_usuario) return res.status(400).json({ msg: 'Falta id_usuario' });
 
-// --- OBTENER CATEGORÍAS ---
-app.get('/categorias', async (req, res) => {
     try {
-        const [categorias] = await db.promise().query('SELECT ID_Categoria, Nombre FROM categorias');
-        res.json(categorias);
+        const [pedidos] = await db.promise().query(`
+            SELECT 
+                p.ID_Pedido, p.Estado, p.Fecha_Pedido,
+                u_artista.Nombre AS NombreArtista, u_artista.fdp AS FotoArtista, u_artista.ID_Usuario AS ID_Artista,
+                u_cliente.Nombre AS NombreCliente, u_cliente.fdp AS FotoCliente, u_cliente.ID_Usuario AS ID_Cliente,
+                pub.Titulo AS TituloObra,
+                (SELECT Contenido FROM mensajes_pedido WHERE ID_Pedido = p.ID_Pedido ORDER BY FechaEnvio DESC LIMIT 1) AS UltimoMensaje,
+                (SELECT FechaEnvio FROM mensajes_pedido WHERE ID_Pedido = p.ID_Pedido ORDER BY FechaEnvio DESC LIMIT 1) AS UltimaFecha
+            FROM pedidos p
+            JOIN usuario u_artista ON p.ID_Artista = u_artista.ID_Usuario
+            JOIN usuario u_cliente ON p.ID_Usuario = u_cliente.ID_Usuario
+            LEFT JOIN publicaciones pub ON p.ID_Publicacion = pub.ID_Publicacion
+            WHERE p.ID_Usuario = ? OR p.ID_Artista = ?
+            ORDER BY UltimaFecha DESC
+        `, [id_usuario, id_usuario]);
+
+        res.json(pedidos);
     } catch (err) {
-        console.error("Error al obtener categorías:", err);
-        res.status(500).json({ msg: "Error en el servidor" });
+        console.error('Error al obtener conversaciones:', err);
+        res.status(500).json({ msg: 'Error' });
+    }
+});
+
+// Obtener mensajes de un pedido
+app.get('/chat/mensajes/:id_pedido', async (req, res) => {
+    const { id_pedido } = req.params;
+    try {
+        const [mensajes] = await db.promise().query(`
+            SELECT m.*, u.Nombre AS NombreEmisor, u.fdp AS FotoEmisor
+            FROM mensajes_pedido m
+            JOIN usuario u ON m.ID_Emisor = u.ID_Usuario
+            WHERE m.ID_Pedido = ?
+            ORDER BY m.FechaEnvio ASC
+        `, [id_pedido]);
+        res.json(mensajes);
+    } catch (err) {
+        console.error('Error al obtener mensajes:', err);
+        res.status(500).json({ msg: 'Error' });
+    }
+});
+
+// Enviar mensaje con imagen opcional (boceto)
+app.post('/chat/mensaje', upload.single('boceto'), async (req, res) => {
+    const { id_pedido, id_emisor, contenido } = req.body;
+    if (!id_pedido || !id_emisor || !contenido)
+        return res.status(400).json({ msg: 'Faltan campos' });
+
+    let boceto_url = null;
+    if (req.file) {
+        const b64 = req.file.buffer.toString('base64');
+        boceto_url = `data:${req.file.mimetype};base64,${b64}`;
+    }
+
+    try {
+        const [result] = await db.promise().query(
+            'INSERT INTO mensajes_pedido (ID_Pedido, ID_Emisor, Contenido, Boceto_URL) VALUES (?, ?, ?, ?)',
+            [id_pedido, id_emisor, contenido, boceto_url]
+        );
+
+        const [usuarios] = await db.promise().query(
+            'SELECT Nombre, fdp FROM usuario WHERE ID_Usuario = ?', [id_emisor]
+        );
+
+        const mensaje = {
+            ID_Mensaje: result.insertId,
+            ID_Pedido: parseInt(id_pedido),
+            ID_Emisor: parseInt(id_emisor),
+            NombreEmisor: usuarios[0].Nombre,
+            FotoEmisor: usuarios[0].fdp,
+            Contenido: contenido,
+            Boceto_URL: boceto_url,
+            FechaEnvio: new Date()
+        };
+
+        io.to(`pedido_${id_pedido}`).emit('nuevo_mensaje', mensaje);
+        console.log(`💬 Mensaje enviado al pedido ${id_pedido} por usuario ${id_emisor}`);
+        res.json({ msg: 'ok', mensaje });
+    } catch (err) {
+        console.error('Error al enviar mensaje:', err);
+        res.status(500).json({ msg: 'Error' });
+    }
+});
+
+// --- CREAR RESEÑA ---
+app.post('/resenas/crear', async (req, res) => {
+    const { id_pedido, id_usuario, id_artista, puntuacion, comentario } = req.body;
+    if (!id_pedido || !id_usuario || !id_artista || !puntuacion)
+        return res.status(400).json({ msg: 'Faltan campos' });
+    try {
+        const [pedido] = await db.promise().query(
+            'SELECT Estado FROM pedidos WHERE ID_Pedido = ? AND ID_Usuario = ?',
+            [id_pedido, id_usuario]
+        );
+        if (!pedido.length || pedido[0].Estado !== 'Completado')
+            return res.status(400).json({ msg: 'Solo puedes reseñar pedidos completados' });
+
+        const [existente] = await db.promise().query(
+            'SELECT ID_Reseña FROM reseñas WHERE ID_Pedido = ?', [id_pedido]
+        );
+        if (existente.length)
+            return res.status(400).json({ msg: 'Ya dejaste una reseña para este pedido' });
+
+        await db.promise().query(
+            `INSERT INTO reseñas (ID_Pedido, ID_Usuario, ID_Artista, Puntuacion, Comentario)
+             VALUES (?, ?, ?, ?, ?)`,
+            [id_pedido, id_usuario, id_artista, puntuacion, comentario || '']
+        );
+        res.json({ msg: 'Reseña guardada' });
+    } catch (err) {
+        console.error('Error al crear reseña:', err);
+        res.status(500).json({ msg: 'Error en el servidor' });
+    }
+});
+
+// --- OBTENER RESEÑAS DE UN ARTISTA ---
+app.get('/resenas/artista/:id_artista', async (req, res) => {
+    const { id_artista } = req.params;
+    try {
+        const [resenas] = await db.promise().query(`
+            SELECT r.Puntuacion, r.Comentario, r.Fecha_Reseña,
+                   u.Nombre AS NombreCliente, u.fdp AS FotoCliente,
+                   pub.Titulo AS TituloObra
+            FROM reseñas r
+            JOIN usuario u ON r.ID_Usuario = u.ID_Usuario
+            JOIN pedidos p ON r.ID_Pedido = p.ID_Pedido
+            LEFT JOIN publicaciones pub ON p.ID_Publicacion = pub.ID_Publicacion
+            WHERE r.ID_Artista = ? AND r.Activa = 1
+            ORDER BY r.Fecha_Reseña DESC
+        `, [id_artista]);
+        res.json(resenas);
+    } catch (err) {
+        res.status(500).json({ msg: 'Error' });
+    }
+});
+
+// --- OBTENER RESEÑAS DE UNA PUBLICACIÓN ---
+app.get('/resenas/publicacion/:id_publicacion', async (req, res) => {
+    const { id_publicacion } = req.params;
+    try {
+        const [resenas] = await db.promise().query(`
+            SELECT r.Puntuacion, r.Comentario, r.Fecha_Reseña,
+                   u.Nombre AS NombreCliente, u.fdp AS FotoCliente
+            FROM reseñas r
+            JOIN usuario u ON r.ID_Usuario = u.ID_Usuario
+            JOIN pedidos p ON r.ID_Pedido = p.ID_Pedido
+            WHERE p.ID_Publicacion = ? AND r.Activa = 1
+            ORDER BY r.Fecha_Reseña DESC
+        `, [id_publicacion]);
+        res.json(resenas);
+    } catch (err) {
+        res.status(500).json({ msg: 'Error' });
     }
 });
 
@@ -752,8 +863,26 @@ app.get('/categorias', async (req, res) => {
 // --- RUTAS DE NAVEGACIÓN ---
 app.use('/', pageRoutes);
 
-// --- INICIO DEL SERVIDOR ---
-app.listen(puerto, () => {
-    console.log(`Servidor corriendo en http://localhost:${puerto}`);
+// ============================================
+// SOCKET.IO
+// ============================================
+const http = require('http');
+const { Server } = require('socket.io');
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: '*' } });
+
+io.on('connection', (socket) => {
+    console.log('🔌 Cliente conectado al chat');
+    socket.on('unirse_pedido', (id_pedido) => {
+        socket.join(`pedido_${id_pedido}`);
+        console.log(`👥 Cliente unido a sala pedido_${id_pedido}`);
+    });
+    socket.on('disconnect', () => {
+        console.log('🔌 Cliente desconectado del chat');
+    });
 });
 
+// --- INICIO DEL SERVIDOR ---
+server.listen(puerto, () => {
+    console.log(`Servidor corriendo en http://localhost:${puerto}`);
+});

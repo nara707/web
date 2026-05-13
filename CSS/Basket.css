@@ -502,3 +502,15 @@ nav {
     transform: translateY(-2px);
     box-shadow: 0 4px 14px rgba(200, 180, 60, 0.4);
 }
+
+.nav-logout {
+    cursor: pointer;
+    color: #d899e8;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s, transform 0.2s;
+}
+.nav-logout:hover {
+    color: #f0c8a0;
+    transform: scale(1.15);
+}

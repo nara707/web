@@ -244,3 +244,15 @@
     .foot-links a { font-size:.8rem; color:rgba(255,255,255,.45); text-decoration:none; transition:color .2s; }
     .foot-links a:hover { color:#d899e8; }
     footer p { font-size:.78rem; color:rgba(255,255,255,.35); }
+
+    .nav-logout {
+    cursor: pointer;
+    color: #d899e8;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s, transform 0.2s;
+}
+.nav-logout:hover {
+    color: #f0c8a0;
+    transform: scale(1.15);
+}

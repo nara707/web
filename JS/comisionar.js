@@ -31,7 +31,6 @@ async function cargarArtista() {
         const input = document.getElementById('artistInput');
         if (input) input.value = `@${data.nombre.replace(/\s+/g, '').toLowerCase()}`;
 
-        // Mostrar precio base
         const precioInput = document.getElementById('precio');
         if (precioInput && precioBase > 0) precioInput.value = precioBase;
 
@@ -91,8 +90,30 @@ async function handleSubmit() {
         btn.classList.remove('loading');
 
         if (res.ok) {
+            // Enviar mensaje automático con los detalles de la comisión
+            const mensajeAuto =
+                `🎨 ¡Nueva comisión enviada!\n\n` +
+                `📐 Estilo: ${estilo}\n` +
+                `🖼️ Formato: ${formato}\n` +
+                `💰 Presupuesto: $${precio}\n` +
+                `📝 Descripción: ${desc}`;
+
+            try {
+                await fetch('/chat/mensaje', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id_pedido: data.id_pedido,
+                        id_emisor: usuario.id,
+                        contenido: mensajeAuto
+                    })
+                });
+            } catch (chatErr) {
+                console.error('Error enviando mensaje automático:', chatErr);
+                // No bloquear el flujo si falla el mensaje
+            }
+
             document.getElementById('success').classList.add('show');
-            // Regresar al artwork después de 2.5 segundos
             setTimeout(() => {
                 window.location.href = `/artwork?id=${idPublicacion}`;
             }, 2500);

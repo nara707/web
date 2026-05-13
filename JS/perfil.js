@@ -9,9 +9,18 @@ function actualizarNavbar() {
       <a href="/landing#categorias">Categorías</a>
       <a href="/basket">Canasta</a>
       <a href="/mi-perfil">Perfil</a>
+      <span class="nav-logout" onclick="cerrarSesion()" title="Cerrar sesión">
+        <span class="material-symbols-outlined">logout</span>
+      </span>
     `;
   }
 }
+
+function cerrarSesion() {
+    sessionStorage.removeItem('usuario');
+    window.location.href = '/login';
+}
+
 actualizarNavbar();
 
 // -- Cargar nombre y foto del perfil --
@@ -21,7 +30,6 @@ async function cargarPerfil() {
         window.location.href = '/login';
         return;
     }
-
     try {
         const res = await fetch(`/api/perfil?correo=${encodeURIComponent(usuario.correo)}`);
         const data = await res.json();
@@ -45,9 +53,7 @@ cargarPerfil();
 // INICIO DEL IIFE
 // ============================================
 (function () {
-    // ============================================
-    // ESTRELLAS
-    // ============================================
+    // ── Estrellas ──
     const sc = ['#e8d87a','#d899e8','#ffffff','#f0c8a0','#b05ad0'];
     function rc(){return sc[Math.floor(Math.random()*sc.length)];}
     function s4(r){const p=[];for(let i=0;i<8;i++){const a=(i*Math.PI)/4-Math.PI/2,rad=i%2===0?r:r*.4;p.push(`${rad*Math.cos(a)},${rad*Math.sin(a)}`);}return p.join(' ');}
@@ -55,9 +61,7 @@ cargarPerfil();
     const sh=[s=>`<polygon points="${s4(s)}" fill="${rc()}" opacity=".6"/>`,s=>`<polygon points="${s6(s)}" fill="${rc()}" opacity=".55"/>`,s=>`<polygon points="0,${-s} ${s*.4},0 0,${s} ${-s*.4},0" fill="${rc()}" opacity=".7"/>`];
     [{size:10,left:4,dur:'10s',delay:'0s'},{size:14,left:14,dur:'13s',delay:'2s'},{size:8,left:24,dur:'9s',delay:'5s'},{size:16,left:36,dur:'12s',delay:'1s'},{size:10,left:50,dur:'8s',delay:'3.5s'},{size:18,left:62,dur:'15s',delay:'0.5s'},{size:11,left:74,dur:'11s',delay:'7s'},{size:9,left:85,dur:'9s',delay:'2.5s'},{size:13,left:94,dur:'12s',delay:'4s'}].forEach(d=>{const sv=sh[Math.floor(Math.random()*sh.length)];const svg=`<svg viewBox="${-d.size} ${-d.size} ${d.size*2} ${d.size*2}" width="${d.size*2}" height="${d.size*2}">${sv(d.size)}</svg>`;const el=document.createElement('div');el.className='star';el.style.cssText=`left:${d.left}%;bottom:-${d.size*2}px;--dur:${d.dur};--delay:${d.delay}`;el.innerHTML=svg;document.body.appendChild(el);});
 
-    // ============================================
-    // ELEMENTOS DOM
-    // ============================================
+    // ── Elementos DOM ──
     const grid = document.getElementById('cardsGrid');
     const mainChips = document.querySelectorAll('#filterChipsRow .chip-filter');
     const subfilterRow = document.getElementById('subfilterRow');
@@ -65,22 +69,17 @@ cargarPerfil();
     const tabSells = document.getElementById('tab-sells');
     const tabBasket = document.getElementById('tab-basket');
 
-    // Elementos del modal
     const modalMensaje = document.getElementById('modalMensaje');
     const modalIcon = document.getElementById('modalIcon');
     const modalTitulo = document.getElementById('modalTitulo');
     const modalTexto = document.getElementById('modalTexto');
     const modalCerrarBtn = document.getElementById('modalCerrarBtn');
 
-    // ============================================
-    // FUNCIONES DEL MODAL
-    // ============================================
-       function mostrarModal(icono, titulo, texto, esError = false) {
-     
+    // ── Modal de feedback ──
+    function mostrarModal(icono, titulo, texto, esError = false) {
         modalIcon.innerHTML = icono;
         modalTitulo.textContent = titulo;
         modalTexto.textContent = texto;
-        
         if (esError) {
             modalCerrarBtn.style.background = 'linear-gradient(90deg, #d07070, #b05050)';
             modalCerrarBtn.style.color = 'white';
@@ -88,54 +87,36 @@ cargarPerfil();
             modalCerrarBtn.style.background = 'linear-gradient(90deg, #e8d87a, #f0e89a)';
             modalCerrarBtn.style.color = '#7a6010';
         }
-        
         modalMensaje.classList.add('show');
-        console.log("✅ Modal debería estar visible ahora");
-    }
-    function cerrarModal() {
-        if (modalMensaje) {
-            modalMensaje.classList.remove('show');
-        }
     }
 
-    // Configurar eventos del modal
-    if (modalCerrarBtn) {
-        modalCerrarBtn.addEventListener('click', cerrarModal);
+    function cerrarModal() {
+        if (modalMensaje) modalMensaje.classList.remove('show');
     }
+
+    if (modalCerrarBtn) modalCerrarBtn.addEventListener('click', cerrarModal);
     if (modalMensaje) {
         modalMensaje.addEventListener('click', (e) => {
             if (e.target === modalMensaje) cerrarModal();
         });
     }
 
-    // ============================================
-    // ESTADO GENERAL
-    // ============================================
+    // ── Estado general ──
     let currentTab = 'publications';
-
-    // Estado para PUBLICACIONES
     let allCards = [];
     let categoriasFiltro = [];
     let currentPublicationsFilter = 'all';
     let currentPublicationsSort = null;
     let publicationsSortOrder = 'desc';
-
-    // Estado para VENTAS
     let allVentas = [];
     let currentVentasFilter = 'all';
     let currentVentasSort = null;
-
-    // Estado para COMPRAS
     let allCompras = [];
     let currentComprasFilter = 'all';
     let currentComprasSort = null;
-
-    // Cache de categorías
     let cachedCategorias = [];
 
-    // ============================================
-    // FUNCIONES AUXILIARES
-    // ============================================
+    // ── Helpers ──
     function obtenerClaseEstado(estado) {
         switch(estado) {
             case 'pendiente': return 'estado-pendiente';
@@ -159,6 +140,176 @@ cargarPerfil();
             return [];
         }
     }
+
+    // ============================================
+    // MODAL DE REVISIÓN — obliga a subir imagen
+    // ============================================
+    function mostrarModalRevision(idPedido) {
+        let modal = document.getElementById('modalRevision');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'modalRevision';
+            modal.className = 'modal-mensaje-overlay';
+            modal.innerHTML = `
+                <div class="modal-mensaje-box" style="max-width:420px">
+                    <div class="modal-mensaje-icon">🖼️</div>
+                    <h3 class="modal-mensaje-titulo">Enviar a revisión</h3>
+                    <p class="modal-mensaje-texto">Adjunta una imagen del avance para que el cliente pueda aprobar o sugerir cambios.</p>
+                    <label style="display:flex;flex-direction:column;gap:6px;margin:14px 0;text-align:left;font-size:13px;color:#aaa;cursor:pointer">
+                        Imagen del avance (obligatoria)
+                        <input type="file" id="inputImagenRevision" accept="image/*" style="font-size:13px;color:white;cursor:pointer">
+                    </label>
+                    <div id="previewRevision" style="display:none;margin-bottom:12px;text-align:center">
+                        <img id="imgPreviewRevision" style="max-width:100%;border-radius:10px;max-height:160px;object-fit:cover;">
+                    </div>
+                    <div style="display:flex;gap:10px;justify-content:center;margin-top:8px">
+                        <button id="btnCancelarRevision" class="modal-mensaje-boton" style="background:#333;color:white">Cancelar</button>
+                        <button id="btnEnviarRevision" class="modal-mensaje-boton">Enviar revisión</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        modal.classList.add('show');
+
+        const inputImg = document.getElementById('inputImagenRevision');
+        inputImg.value = '';
+        document.getElementById('previewRevision').style.display = 'none';
+
+        inputImg.onchange = () => {
+            const file = inputImg.files[0];
+            if (file) {
+                document.getElementById('imgPreviewRevision').src = URL.createObjectURL(file);
+                document.getElementById('previewRevision').style.display = 'block';
+            }
+        };
+
+        document.getElementById('btnCancelarRevision').onclick = () => {
+            modal.classList.remove('show');
+        };
+
+        document.getElementById('btnEnviarRevision').onclick = async () => {
+            const file = inputImg.files[0];
+            if (!file) {
+                mostrarModal('⚠️', 'Imagen requerida', 'Debes adjuntar una imagen del avance para continuar.', true);
+                return;
+            }
+
+            const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+
+            // 1. Actualizar estado a Revision
+            const res = await fetch(`/pedidos/${idPedido}/estado`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nuevoEstado: 'Revision' })
+            });
+
+            if (!res.ok) {
+                mostrarModal('⚠️', 'Error', 'No se pudo actualizar el estado.', true);
+                return;
+            }
+
+            // 2. Enviar mensaje automático con boceto
+            const formData = new FormData();
+            formData.append('id_pedido', idPedido);
+            formData.append('id_emisor', usuario.id);
+            formData.append('contenido', '🖼️ He enviado el avance a revisión. Por favor revisa la imagen y dime si hay cambios o si lo apruebas.');
+            formData.append('boceto', file);
+
+            await fetch('/chat/mensaje', { method: 'POST', body: formData });
+
+            modal.classList.remove('show');
+            mostrarModal('✅', '¡Enviado a revisión!', 'El cliente recibirá tu avance en el chat.');
+            setTimeout(() => renderizarVentas(), 900);
+        };
+
+        // Cerrar al click fuera
+        modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('show'); };
+    }
+
+function mostrarModalCompletar(idPedido) {
+    let modal = document.getElementById('modalCompletar');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalCompletar';
+        modal.className = 'modal-mensaje-overlay';
+        modal.innerHTML = `
+            <div class="modal-mensaje-box" style="max-width:420px">
+                <div class="modal-mensaje-icon">🎉</div>
+                <h3 class="modal-mensaje-titulo">Completar comisión</h3>
+                <p class="modal-mensaje-texto">Adjunta la imagen final de la obra para que el cliente pueda verla y dejar una reseña.</p>
+                <label style="display:flex;flex-direction:column;gap:6px;margin:14px 0;text-align:left;font-size:13px;color:#aaa;cursor:pointer">
+                    Obra final (obligatoria)
+                    <input type="file" id="inputImagenCompletar" accept="image/*" style="font-size:13px;color:white;cursor:pointer">
+                </label>
+                <div id="previewCompletar" style="display:none;margin-bottom:12px;text-align:center">
+                    <img id="imgPreviewCompletar" style="max-width:100%;border-radius:10px;max-height:160px;object-fit:cover;">
+                </div>
+                <div style="display:flex;gap:10px;justify-content:center;margin-top:8px">
+                    <button id="btnCancelarCompletar" class="modal-mensaje-boton" style="background:#333;color:white">Cancelar</button>
+                    <button id="btnEnviarCompletar" class="modal-mensaje-boton" style="background:linear-gradient(90deg,#5ab05a,#3a803a);color:white">Completar</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    modal.classList.add('show');
+
+    const inputImg = document.getElementById('inputImagenCompletar');
+    inputImg.value = '';
+    document.getElementById('previewCompletar').style.display = 'none';
+
+    inputImg.onchange = () => {
+        const file = inputImg.files[0];
+        if (file) {
+            document.getElementById('imgPreviewCompletar').src = URL.createObjectURL(file);
+            document.getElementById('previewCompletar').style.display = 'block';
+        }
+    };
+
+    document.getElementById('btnCancelarCompletar').onclick = () => {
+        modal.classList.remove('show');
+    };
+
+    document.getElementById('btnEnviarCompletar').onclick = async () => {
+        const file = inputImg.files[0];
+        if (!file) {
+            mostrarModal('⚠️', 'Imagen requerida', 'Debes adjuntar la imagen final de la obra.', true);
+            return;
+        }
+
+        const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+
+        // 1. Actualizar estado a Completado
+        const res = await fetch(`/pedidos/${idPedido}/estado`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nuevoEstado: 'Completado' })
+        });
+
+        if (!res.ok) {
+            mostrarModal('⚠️', 'Error', 'No se pudo completar el pedido.', true);
+            return;
+        }
+
+        // 2. Enviar mensaje final con la imagen de la obra
+        const formData = new FormData();
+        formData.append('id_pedido', idPedido);
+        formData.append('id_emisor', usuario.id);
+        formData.append('contenido', '🎉 ¡Comisión completada! Aquí está tu obra final. Espero que te encante, fue un placer trabajar en esto.');
+        formData.append('boceto', file);
+
+        await fetch('/chat/mensaje', { method: 'POST', body: formData });
+
+        modal.classList.remove('show');
+        mostrarModal('🎉', '¡Completado!', 'La obra fue enviada al cliente.');
+        setTimeout(() => renderizarVentas(), 900);
+    };
+
+    modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('show'); };
+}
 
     // ============================================
     // SECCIÓN 1: PUBLICACIONES
@@ -268,7 +419,7 @@ cargarPerfil();
                     </div>
                     <div class="art-card-price">${card.price}</div>
                     <button class="art-card-save material-symbols-outlined"
-                        onclick="this.classList.toggle('saved')">favorite</button>
+                        onclick="event.stopPropagation();this.classList.toggle('saved')">favorite</button>
                 </div>`;
         }).join('');
     }
@@ -279,7 +430,6 @@ cargarPerfil();
     async function cargarVentas() {
         const usuario = JSON.parse(sessionStorage.getItem('usuario'));
         if (!usuario || !usuario.id) return [];
-
         try {
             const response = await fetch(`/pedidos/artista/${usuario.id}`);
             allVentas = await response.json();
@@ -294,17 +444,13 @@ cargarPerfil();
     async function renderizarFiltrosCategoriasVentas() {
         if (!subfilterRow) return;
         const categorias = await obtenerCategorias();
-        
         subfilterRow.innerHTML = `
             <span class="chip-filter ${currentVentasFilter === 'all' ? 'active' : ''}" data-filter="all">Todos</span>
             ${categorias.map(cat => `
                 <span class="chip-filter ${currentVentasFilter === cat.ID_Categoria ? 'active' : ''}" 
-                      data-filter="${cat.ID_Categoria}">
-                    ${cat.Nombre}
-                </span>
+                      data-filter="${cat.ID_Categoria}">${cat.Nombre}</span>
             `).join('')}
         `;
-
         document.querySelectorAll('#subfilterRow .chip-filter').forEach(chip => {
             chip.addEventListener('click', async () => {
                 const filterValue = chip.dataset.filter;
@@ -317,7 +463,6 @@ cargarPerfil();
 
     async function renderizarVentas() {
         await cargarVentas();
-        
         grid.className = 'pedidos-container';
 
         if (allVentas.length === 0) {
@@ -326,11 +471,9 @@ cargarPerfil();
         }
 
         let filtered = [...allVentas];
-        
         if (currentVentasFilter !== 'all') {
             filtered = filtered.filter(venta => venta.ID_Categoria == currentVentasFilter);
         }
-        
         if (currentVentasSort === 'date') {
             filtered.sort((a, b) => new Date(b.Fecha_Pedido) - new Date(a.Fecha_Pedido));
         }
@@ -362,6 +505,9 @@ cargarPerfil();
                             <span class="pedido-fecha">${new Date(venta.Fecha_Pedido).toLocaleDateString()}</span>
                         </div>
                         <div class="pedido-acciones">
+                            <button class="btn-chat-pedido" data-id="${venta.ID_Pedido}" data-nombre="${venta.ClienteNombre || 'Cliente'}">
+                                💬 Chat
+                            </button>
                             ${venta.Estado === 'pendiente' ? `
                                 <button class="btn-aprobar" data-id="${venta.ID_Pedido}">✓ Aprobar</button>
                                 <button class="btn-rechazar" data-id="${venta.ID_Pedido}">✗ Rechazar</button>
@@ -383,6 +529,7 @@ cargarPerfil();
             `;
         }).join('');
 
+        // Event listeners ventas
         document.querySelectorAll('.btn-aprobar').forEach(btn => {
             btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'aprobado', 'ventas'));
         });
@@ -392,11 +539,22 @@ cargarPerfil();
         document.querySelectorAll('.btn-iniciar, .btn-retomar').forEach(btn => {
             btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'En proceso', 'ventas'));
         });
+        // ⚠️ Revisión ahora abre el modal con imagen obligatoria
         document.querySelectorAll('.btn-revision').forEach(btn => {
-            btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'Revision', 'ventas'));
+            btn.addEventListener('click', () => mostrarModalRevision(btn.dataset.id));
         });
         document.querySelectorAll('.btn-completar').forEach(btn => {
-            btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'Completado', 'ventas'));
+    btn.addEventListener('click', () => mostrarModalCompletar(btn.dataset.id));
+});
+        // Chat
+        document.querySelectorAll('.btn-chat-pedido').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (window.abrirChatDesdePedido) {
+                    window.abrirChatDesdePedido(parseInt(btn.dataset.id), btn.dataset.nombre);
+                } else {
+                    mostrarModal('💬', 'Chat', 'El chat no está disponible en esta página.', true);
+                }
+            });
         });
     }
 
@@ -406,10 +564,10 @@ cargarPerfil();
     async function cargarCompras() {
         const usuario = JSON.parse(sessionStorage.getItem('usuario'));
         if (!usuario || !usuario.id) return [];
-
         try {
             const response = await fetch(`/pedidos/usuario/${usuario.id}`);
             allCompras = await response.json();
+            console.log('COMPRAS:', allCompras);
             return allCompras;
         } catch (err) {
             console.error("Error al cargar compras:", err);
@@ -421,17 +579,13 @@ cargarPerfil();
     async function renderizarFiltrosCategoriasCompras() {
         if (!subfilterRow) return;
         const categorias = await obtenerCategorias();
-        
         subfilterRow.innerHTML = `
             <span class="chip-filter ${currentComprasFilter === 'all' ? 'active' : ''}" data-filter="all">Todos</span>
             ${categorias.map(cat => `
                 <span class="chip-filter ${currentComprasFilter === cat.ID_Categoria ? 'active' : ''}" 
-                      data-filter="${cat.ID_Categoria}">
-                    ${cat.Nombre}
-                </span>
+                      data-filter="${cat.ID_Categoria}">${cat.Nombre}</span>
             `).join('')}
         `;
-
         document.querySelectorAll('#subfilterRow .chip-filter').forEach(chip => {
             chip.addEventListener('click', async () => {
                 const filterValue = chip.dataset.filter;
@@ -444,7 +598,6 @@ cargarPerfil();
 
     async function renderizarCompras() {
         await cargarCompras();
-        
         grid.className = 'pedidos-container';
 
         if (allCompras.length === 0) {
@@ -453,11 +606,9 @@ cargarPerfil();
         }
 
         let filtered = [...allCompras];
-        
         if (currentComprasFilter !== 'all') {
             filtered = filtered.filter(compra => compra.ID_Categoria == currentComprasFilter);
         }
-        
         if (currentComprasSort === 'date') {
             filtered.sort((a, b) => new Date(b.Fecha_Pedido) - new Date(a.Fecha_Pedido));
         }
@@ -489,8 +640,11 @@ cargarPerfil();
                             <span class="pedido-fecha">${new Date(pedido.Fecha_Pedido).toLocaleDateString()}</span>
                         </div>
                         <div class="pedido-acciones">
-                            ${pedido.Estado === 'Completado' ? 
-                                `<button class="btn-reseñar" data-id="${pedido.ID_Pedido}">⭐ Dejar reseña</button>` : ''}
+                            <button class="btn-chat-pedido" data-id="${pedido.ID_Pedido}" data-nombre="${pedido.ArtistaNombre || 'Artista'}">
+                                💬 Chat
+                            </button>
+                            ${pedido.Estado === 'Completado' ?
+                                `<button class="btn-reseñar" data-id="${pedido.ID_Pedido}" data-artista="${pedido.ID_Artista || ''}">⭐ Dejar reseña</button>` : ''}
                         </div>
                     </div>
                 </div>
@@ -498,81 +652,196 @@ cargarPerfil();
         }).join('');
 
         document.querySelectorAll('.btn-reseñar').forEach(btn => {
-            btn.addEventListener('click', () => mostrarModal('⭐', 'Próximamente', 'Funcionalidad de reseña en desarrollo'));
+    btn.addEventListener('click', () => mostrarModalResena(btn.dataset.id, btn.dataset.artista));
+});
+        // Chat en compras
+        document.querySelectorAll('.btn-chat-pedido').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (window.abrirChatDesdePedido) {
+                    window.abrirChatDesdePedido(parseInt(btn.dataset.id), btn.dataset.nombre);
+                } else {
+                    mostrarModal('💬', 'Chat', 'El chat no está disponible en esta página.', true);
+                }
+            });
         });
     }
 
     // ============================================
-    // ACTUALIZAR ESTADO DE PEDIDO (con modal)
+    // ACTUALIZAR ESTADO DE PEDIDO
     // ============================================
     async function actualizarEstadoPedido(id, nuevoEstado, origen) {
-        // Mostrar loading en el botón si se puede
-        try {
-            let url = `/pedidos/${id}/estado`;
-            let body = { nuevoEstado };
-            
-            if (nuevoEstado === 'rechazar') {
-                url = `/pedidos/${id}/rechazar`;
-                body = {};
-            } else if (nuevoEstado === 'aprobado') {
-                url = `/pedidos/${id}/aprobar`;
-                body = {};
-            } else if (nuevoEstado === 'pagar') {
-                url = `/pedidos/${id}/pagar`;
-                body = {};
-            } else {
-                body = { nuevoEstado };
-            }
-            
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                let mensaje = '';
-                let icono = '✅';
-                let titulo = '¡Éxito!';
-                
-                switch(nuevoEstado) {
-                    case 'aprobado': mensaje = 'Pedido aprobado correctamente'; break;
-                    case 'rechazar': mensaje = 'Pedido rechazado correctamente'; icono = '❌'; titulo = 'Pedido Rechazado'; break;
-                    case 'En proceso': mensaje = 'Has iniciado el trabajo en este pedido'; break;
-                    case 'Revision': mensaje = 'Has enviado el trabajo a revisión'; break;
-                    case 'Completado': mensaje = '¡Has completado el pedido! El cliente podrá dejar una reseña'; icono = '🎉'; break;
-                    default: mensaje = data.msg || 'Estado actualizado correctamente';
-                }
-                
-                mostrarModal(icono, titulo, mensaje);
-                
-                if (origen === 'ventas') {
-                    // Recargar después de 800ms (más rápido)
-                    setTimeout(() => {
-                        renderizarVentas();
-                    }, 800);
-                }
-            } else {
-                mostrarModal('⚠️', 'Error', data.msg || 'No se pudo actualizar el estado', true);
-            }
-        } catch (err) {
-            console.error("Error:", err);
-            mostrarModal('⚠️', 'Error de conexión', 'No se pudo conectar con el servidor', true);
+    try {
+        let url = `/pedidos/${id}/estado`;
+        let body = { nuevoEstado };
+
+        if (nuevoEstado === 'rechazar') {
+            url = `/pedidos/${id}/rechazar`;
+            body = {};
+        } else if (nuevoEstado === 'aprobado') {
+            url = `/pedidos/${id}/aprobar`;
+            body = {};
+        } else if (nuevoEstado === 'pagar') {
+            url = `/pedidos/${id}/pagar`;
+            body = {};
         }
+
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+
+            // Mensaje automático según el nuevo estado
+            const mensajes = {
+                'aprobado':    '✅ El artista ha aceptado tu comisión. Pronto iniciará el trabajo.',
+                'rechazar':    '❌ El artista ha rechazado la comisión.',
+                'En proceso':  '🎨 El artista ha iniciado el trabajo en tu comisión.',
+                'Completado':  '🎉 ¡El artista ha marcado la comisión como completada! Puedes dejar una reseña.',
+            };
+
+            if (mensajes[nuevoEstado]) {
+                await fetch('/chat/mensaje', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id_pedido: id,
+                        id_emisor: usuario.id,
+                        contenido: mensajes[nuevoEstado]
+                    })
+                });
+            }
+
+            let mensaje = '';
+            let icono = '✅';
+            let titulo = '¡Éxito!';
+
+            switch(nuevoEstado) {
+                case 'aprobado': mensaje = 'Pedido aprobado correctamente'; break;
+                case 'rechazar': mensaje = 'Pedido rechazado'; icono = '❌'; titulo = 'Pedido Rechazado'; break;
+                case 'En proceso': mensaje = 'Has iniciado el trabajo en este pedido'; break;
+                case 'Completado': mensaje = '¡Pedido completado! El cliente podrá dejar una reseña'; icono = '🎉'; break;
+                default: mensaje = data.msg || 'Estado actualizado correctamente';
+            }
+
+            mostrarModal(icono, titulo, mensaje);
+
+            if (origen === 'ventas') {
+                setTimeout(() => renderizarVentas(), 800);
+            }
+        } else {
+            mostrarModal('⚠️', 'Error', data.msg || 'No se pudo actualizar el estado', true);
+        }
+    } catch (err) {
+        console.error("Error:", err);
+        mostrarModal('⚠️', 'Error de conexión', 'No se pudo conectar con el servidor', true);
+    }
+}
+
+function mostrarModalResena(idPedido, idArtista) {
+    let modal = document.getElementById('modalResena');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalResena';
+        modal.className = 'modal-mensaje-overlay';
+        modal.innerHTML = `
+            <div class="modal-mensaje-box" style="max-width:420px">
+                <div class="modal-mensaje-icon">⭐</div>
+                <h3 class="modal-mensaje-titulo">Dejar reseña</h3>
+                <p class="modal-mensaje-texto">¿Cómo fue tu experiencia con este artista?</p>
+                <div id="estrellas-input" style="display:flex;gap:8px;justify-content:center;margin:16px 0;font-size:32px;cursor:pointer">
+                    <span class="estrella" data-val="1">☆</span>
+                    <span class="estrella" data-val="2">☆</span>
+                    <span class="estrella" data-val="3">☆</span>
+                    <span class="estrella" data-val="4">☆</span>
+                    <span class="estrella" data-val="5">☆</span>
+                </div>
+                <input type="hidden" id="puntuacion-val" value="0">
+                <textarea id="comentario-resena" placeholder="Cuéntanos sobre tu experiencia (opcional)..."
+                    style="width:100%;background:#2a1040;border:1px solid #ffffff15;border-radius:10px;
+                    padding:10px;color:white;font-family:'DM Sans',sans-serif;font-size:13px;
+                    resize:vertical;min-height:80px;margin-bottom:14px;box-sizing:border-box"></textarea>
+                <div style="display:flex;gap:10px;justify-content:center">
+                    <button id="btnCancelarResena" class="modal-mensaje-boton" style="background:#333;color:white">Cancelar</button>
+                    <button id="btnEnviarResena" class="modal-mensaje-boton">Publicar reseña</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
     }
 
+    // Reset
+    modal.classList.add('show');
+    document.getElementById('puntuacion-val').value = '0';
+    document.getElementById('comentario-resena').value = '';
+    document.querySelectorAll('.estrella').forEach(e => e.textContent = '☆');
+
+    // Estrellas interactivas
+    const estrellas = document.querySelectorAll('.estrella');
+    estrellas.forEach(estrella => {
+        estrella.onmouseover = () => {
+            estrellas.forEach(e => e.textContent = e.dataset.val <= estrella.dataset.val ? '★' : '☆');
+        };
+        estrella.onmouseout = () => {
+            const val = document.getElementById('puntuacion-val').value;
+            estrellas.forEach(e => e.textContent = e.dataset.val <= val ? '★' : '☆');
+        };
+        estrella.onclick = () => {
+            document.getElementById('puntuacion-val').value = estrella.dataset.val;
+            estrellas.forEach(e => e.textContent = e.dataset.val <= estrella.dataset.val ? '★' : '☆');
+        };
+    });
+
+    document.getElementById('btnCancelarResena').onclick = () => modal.classList.remove('show');
+
+    document.getElementById('btnEnviarResena').onclick = async () => {
+        const puntuacion = parseInt(document.getElementById('puntuacion-val').value);
+        if (!puntuacion) {
+            mostrarModal('⚠️', 'Selecciona estrellas', 'Por favor selecciona una puntuación.', true);
+            return;
+        }
+        const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+        const comentario = document.getElementById('comentario-resena').value.trim();
+
+        const res = await fetch('/resenas/crear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id_pedido: idPedido,
+                id_usuario: usuario.id,
+                id_artista: idArtista,
+                puntuacion,
+                comentario
+            })
+        });
+
+        const data = await res.json();
+        modal.classList.remove('show');
+
+        if (res.ok) {
+            mostrarModal('🌸', '¡Gracias!', 'Tu reseña fue publicada correctamente.');
+        } else {
+            mostrarModal('⚠️', 'Error', data.msg, true);
+        }
+    };
+
+    modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('show'); };
+}
+
+
     // ============================================
-    // MANEJADOR DE CHIPS PRINCIPALES
+    // CHIPS PRINCIPALES
     // ============================================
     function handleMainChipClick() {
         const filter = this.dataset.filter;
-        
+
         if (currentTab === 'publications') {
             mainChips.forEach(chip => chip.classList.remove('active'));
             this.classList.add('active');
-            
             if (filter === 'date') {
                 if (currentPublicationsSort === 'date') {
                     publicationsSortOrder = publicationsSortOrder === 'desc' ? 'asc' : 'desc';
@@ -597,11 +866,9 @@ cargarPerfil();
                 buildSubfilterChipsPublications();
                 renderPublications();
             }
-        } 
-        else if (currentTab === 'sells') {
+        } else if (currentTab === 'sells') {
             mainChips.forEach(chip => chip.classList.remove('active'));
             this.classList.add('active');
-            
             if (filter === 'date') {
                 currentVentasSort = currentVentasSort === 'date' ? null : 'date';
                 subfilterRow.style.display = 'flex';
@@ -614,11 +881,9 @@ cargarPerfil();
                 renderizarFiltrosCategoriasVentas();
                 renderizarVentas();
             }
-        } 
-        else if (currentTab === 'basket') {
+        } else if (currentTab === 'basket') {
             mainChips.forEach(chip => chip.classList.remove('active'));
             this.classList.add('active');
-            
             if (filter === 'date') {
                 currentComprasSort = currentComprasSort === 'date' ? null : 'date';
                 subfilterRow.style.display = 'flex';
@@ -635,12 +900,12 @@ cargarPerfil();
     }
 
     // ============================================
-    // MANEJADORES DE TABS
+    // TABS
     // ============================================
     async function setActiveTab(tab) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
-        
+
         if (tab === tabPub) {
             currentTab = 'publications';
             subfilterRow.style.display = 'flex';
@@ -662,9 +927,7 @@ cargarPerfil();
         }
     }
 
-    // ============================================
-    // INICIALIZACIÓN
-    // ============================================
+    // ── Inicialización ──
     mainChips.forEach(chip => {
         chip.removeEventListener('click', handleMainChipClick);
         chip.addEventListener('click', handleMainChipClick);
