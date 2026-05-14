@@ -380,14 +380,30 @@
     @media (max-width: 540px) {
       .stats-kpi-row { grid-template-columns: 1fr 1fr; }
     }
+
+.btn-accion {
+    border: none;
+    border-radius: 50px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+}
+.btn-accion:hover { transform: scale(1.05); opacity: 0.9; }
+.btn-aprobar  { background: linear-gradient(90deg,#7ae8a0,#3a803a); color: white; }
+.btn-rechazar { background: linear-gradient(90deg,#e87a7a,#b05050); color: white; }
+.btn-iniciar  { background: linear-gradient(90deg,#b05ad0,#7a20a0); color: white; }
+.btn-revision { background: linear-gradient(90deg,#e8d87a,#c0a030); color: #3a2000; }
+.btn-retomar  { background: linear-gradient(90deg,#7ab0e8,#3060b0); color: white; }
+.btn-completar{ background: linear-gradient(90deg,#5ab05a,#3a803a); color: white; }
+
   </style>
-<<<<<<< HEAD
 
 <link rel="stylesheet" href="../CSS/chat.css">
 <script src="/socket.io/socket.io.js"></script>
 <script src="../JS/chat.js"></script>
-
-=======
->>>>>>> c238e044f5896b0c108680ef385e0d25e5a0a5ec
+<script src="../JS/perfil-reportes.js"></script>
 </body>
 </html>

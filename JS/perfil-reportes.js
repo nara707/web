@@ -393,21 +393,27 @@ ventas = raw.map(v => ({
             // const badge = badgeMap[v.rawEstado] || `<span class="badge-pendiente">⏳ ${v.rawEstado}</span>`;
 
             // Lista de estados permitidos (mismo orden que quieras mostrar)
-const estadosPermitidos = ['pendiente', 'aprobado', 'En proceso', 'Revision', 'Completado', 'Cancelado'];
-const opciones = estadosPermitidos.map(est =>
-    `<option value="${est}" ${v.rawEstado === est ? 'selected' : ''}>${est}</option>`
-).join('');
-
-const selectEstado = `<select class="estado-select" data-id="${v.id}" style="
-    background:rgba(26,20,48,0.9);
-    color:#e0d8f0;
-    border:1px solid #6a5a88;
-    border-radius:20px;
-    padding:0.2rem 0.6rem;
-    font-size:0.8rem;
-    cursor:pointer;
-    outline:none;
-">${opciones}</select>`;
+const botonesEstado = `
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${v.rawEstado === 'pendiente' ? `
+            <button class="btn-accion btn-aprobar" data-id="${v.id}">✓ Aprobar</button>
+            <button class="btn-accion btn-rechazar" data-id="${v.id}">✗ Rechazar</button>
+        ` : ''}
+        ${v.rawEstado === 'aprobado' ? `
+            <button class="btn-accion btn-iniciar" data-id="${v.id}">▶ Iniciar</button>
+        ` : ''}
+        ${v.rawEstado === 'En proceso' ? `
+            <button class="btn-accion btn-revision" data-id="${v.id}">🔄 Revisión</button>
+            <button class="btn-accion btn-completar" data-id="${v.id}">✅ Completar</button>
+        ` : ''}
+        ${v.rawEstado === 'Revision' ? `
+            <button class="btn-accion btn-retomar" data-id="${v.id}">✏️ Retomar</button>
+            <button class="btn-accion btn-completar" data-id="${v.id}">✅ Completar</button>
+        ` : ''}
+        ${v.rawEstado === 'Completado' ? `<span class="badge-completada">✓ Completado</span>` : ''}
+        ${v.rawEstado === 'Cancelado' ? `<span class="badge-cancelada">✕ Cancelado</span>` : ''}
+    </div>
+`;
             const fecha = new Date(v.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
             // Indicador visual si es comisión sin publicación
             const tipoIcon = !v.portada ? '🎨 ' : '';
@@ -418,24 +424,25 @@ const selectEstado = `<select class="estado-select" data-id="${v.id}" style="
                 <td>${v.categoria}</td>
                 <td>${fecha}</td>
                 <td style="color:#e8d87a;font-weight:700">$${v.monto.toFixed(2)}</td>
-                <td>${selectEstado}</td>
+                <td>${botonesEstado}</td>
             </tr>`;
         }).join('');
                 // Escuchar cambios en los selects de estado de ventas
-        document.querySelectorAll('.estado-select').forEach(select => {
-            const originalEstado = select.value;   // ya viene como v.rawEstado
-            select.dataset.previousValue = originalEstado;
-            select.addEventListener('change', (e) => {
-                const id = e.target.dataset.id;
-                const nuevoEstado = e.target.value;
-                if (confirm(`¿Cambiar estado a "${nuevoEstado}"?`)) {
-                    actualizarEstadoPedido(id, nuevoEstado, 'ventas');
-                } else {
-                    // Restaurar el valor anterior si el usuario cancela
-                    e.target.value = e.target.dataset.previousValue;
-                }
-            });
-        });
+      document.querySelectorAll('.btn-aprobar').forEach(btn => {
+    btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'aprobado', 'ventas'));
+});
+document.querySelectorAll('.btn-rechazar').forEach(btn => {
+    btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'Cancelado', 'ventas'));
+});
+document.querySelectorAll('.btn-iniciar, .btn-retomar').forEach(btn => {
+    btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'En proceso', 'ventas'));
+});
+document.querySelectorAll('.btn-revision').forEach(btn => {
+    btn.addEventListener('click', () => mostrarModalRevision(btn.dataset.id));
+});
+document.querySelectorAll('.btn-completar').forEach(btn => {
+    btn.addEventListener('click', () => mostrarModalCompletar(btn.dataset.id));
+});
     }
 
     // ============================================
@@ -454,6 +461,7 @@ const selectEstado = `<select class="estado-select" data-id="${v.id}" style="
             // Normalizar campos del backend
 pedidos = raw.map(p => ({
                 id:        p.ID_Pedido,
+                idArtista: p.ID_Artista,  
                 titulo:    p.PublicacionTitulo || 'Comisión personalizada',
                 artista:   p.ArtistaNombre    ? `@${p.ArtistaNombre.replace(/\s+/g,'').toLowerCase()}` : 'Artista',
                 categoria: p.CategoriaNombre || 'Ilustración',
@@ -501,7 +509,7 @@ pedidos = raw.map(p => ({
 
             // Botón de reseña solo si fue entregado
             const accionHTML = p.estado === 'Entregado'
-                ? `<button class="btn-reseñar" data-id="${p.id}" style="background:none;border:1px solid #d899e8;color:#d899e8;border-radius:20px;padding:.2rem .7rem;cursor:pointer;font-size:.75rem;">⭐ Reseñar</button>`
+                ? `<button class="btn-reseñar" data-id="${p.id}" data-artista="${p.idArtista || ''}" style=...>⭐ Reseñar</button>`
                 : '';
 
             return `<tr>
@@ -516,12 +524,9 @@ pedidos = raw.map(p => ({
         }).join('');
 
 
-        // Evento botón reseña
         document.querySelectorAll('.btn-reseñar').forEach(btn => {
-            btn.addEventListener('click', () =>
-                mostrarModal('⭐', 'Próximamente', 'La funcionalidad de reseñas estará disponible pronto.')
-            );
-        });
+    btn.addEventListener('click', () => mostrarModalResena(btn.dataset.id, btn.dataset.artista));
+});
     }
 
     // ============================================
@@ -537,25 +542,42 @@ pedidos = raw.map(p => ({
         });
         const data = await response.json();
 
-        if (response.ok) {
-            const msgs = {
-                'pendiente':  ['⏳', 'Pendiente',    'Pedido puesto en pendiente'],
-                'aprobado':   ['✅', 'Aprobado',     'Pedido aprobado'],
-                'En proceso': ['🔄', 'En proceso',   'Has iniciado el trabajo'],
-                'Revision':   ['🔍', 'En revisión',  'Trabajo enviado a revisión'],
-                'Completado': ['🎉', 'Completado',   '¡Pedido completado!'],
-                'Cancelado':  ['❌', 'Cancelado',    'Pedido cancelado']
-            };
-            const [icono, titulo, mensaje] = msgs[nuevoEstado] || ['✅', 'Actualizado', data.msg || 'Estado actualizado'];
-            mostrarModal(icono, titulo, mensaje);
+      if (response.ok) {
+    const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+    const mensajes = {
+        'aprobado':   '✅ El artista ha aceptado tu comisión. Pronto iniciará el trabajo.',
+        'Cancelado':  '❌ El artista ha rechazado la comisión.',
+        'En proceso': '🎨 El artista ha iniciado el trabajo en tu comisión.',
+        'Completado': '🎉 ¡Comisión completada! Puedes dejar una reseña.',
+    };
+ if (mensajes[nuevoEstado]) {
+        await fetch('/chat/mensaje', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id_pedido: id,
+                id_emisor: usuario.id,
+                contenido: mensajes[nuevoEstado]
+            })
+        });
+    }
 
-            // Recargar el panel de ventas para reflejar el cambio
-            if (origen === 'ventas') {
-                setTimeout(() => cargarEstadisticasVentas(), 800);
-            }
-        } else {
-            mostrarModal('⚠️', 'Error', data.msg || 'No se pudo actualizar el estado', true);
-        }
+    const msgs = {
+        'pendiente':  ['⏳', 'Pendiente',   'Pedido puesto en pendiente'],
+        'aprobado':   ['✅', 'Aprobado',    'Pedido aprobado'],
+        'En proceso': ['🔄', 'En proceso',  'Has iniciado el trabajo'],
+        'Revision':   ['🔍', 'En revisión', 'Trabajo enviado a revisión'],
+        'Completado': ['🎉', 'Completado',  '¡Pedido completado!'],
+        'Cancelado':  ['❌', 'Cancelado',   'Pedido cancelado']
+    };
+    const [icono, titulo, mensaje] = msgs[nuevoEstado] || ['✅', 'Actualizado', data.msg || 'Estado actualizado'];
+    mostrarModal(icono, titulo, mensaje);
+
+    if (origen === 'ventas') setTimeout(() => cargarEstadisticasVentas(), 800);
+
+    } else {
+        mostrarModal('⚠️', 'Error', data.msg || 'No se pudo actualizar el estado', true);
+    }
     } catch (err) {
         console.error('Error:', err);
         mostrarModal('⚠️', 'Error de conexión', 'No se pudo conectar con el servidor', true);
@@ -612,5 +634,222 @@ pedidos = raw.map(p => ({
     setActiveMainChip('categories');
     subfilterRow.style.display = 'flex';
     cargarPublicaciones();
+
+function mostrarModalResena(idPedido, idArtista) {
+    const modalViejo = document.getElementById('modalResena');
+    if (modalViejo) modalViejo.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modalResena';
+    modal.className = 'modal-mensaje-overlay';
+    modal.innerHTML = `
+        <div class="modal-mensaje-box" style="max-width:420px">
+            <div class="modal-mensaje-icon">⭐</div>
+            <h3 class="modal-mensaje-titulo">Dejar reseña</h3>
+            <p class="modal-mensaje-texto">¿Cómo fue tu experiencia con este artista?</p>
+            <div id="estrellas-input" style="display:flex;gap:8px;justify-content:center;margin:16px 0;font-size:32px;cursor:pointer">
+                <span class="estrella" data-val="1">☆</span>
+                <span class="estrella" data-val="2">☆</span>
+                <span class="estrella" data-val="3">☆</span>
+                <span class="estrella" data-val="4">☆</span>
+                <span class="estrella" data-val="5">☆</span>
+            </div>
+            <input type="hidden" id="puntuacion-val" value="0">
+            <textarea id="comentario-resena" placeholder="Cuéntanos sobre tu experiencia (opcional)..."
+                style="width:100%;background:#2a1040;border:1px solid #ffffff15;border-radius:10px;
+                padding:10px;color:white;font-family:'DM Sans',sans-serif;font-size:13px;
+                resize:vertical;min-height:80px;margin-bottom:14px;box-sizing:border-box"></textarea>
+            <div style="display:flex;gap:10px;justify-content:center">
+                <button id="btnCancelarResena" class="modal-mensaje-boton" style="background:#333;color:white">Cancelar</button>
+                <button id="btnEnviarResena" class="modal-mensaje-boton">Publicar reseña</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.classList.add('show');
+    document.getElementById('puntuacion-val').value = '0';
+    document.getElementById('comentario-resena').value = '';
+
+    const estrellas = document.querySelectorAll('.estrella');
+    estrellas.forEach(estrella => {
+        estrella.onmouseover = () => {
+            estrellas.forEach(e => e.textContent = e.dataset.val <= estrella.dataset.val ? '★' : '☆');
+        };
+        estrella.onmouseout = () => {
+            const val = document.getElementById('puntuacion-val').value;
+            estrellas.forEach(e => e.textContent = e.dataset.val <= val ? '★' : '☆');
+        };
+        estrella.onclick = () => {
+            document.getElementById('puntuacion-val').value = estrella.dataset.val;
+            estrellas.forEach(e => e.textContent = e.dataset.val <= estrella.dataset.val ? '★' : '☆');
+        };
+    });
+
+    document.getElementById('btnCancelarResena').onclick = () => modal.remove();
+
+    document.getElementById('btnEnviarResena').onclick = async () => {
+        const puntuacion = parseInt(document.getElementById('puntuacion-val').value);
+        if (!puntuacion) {
+            mostrarModal('⚠️', 'Selecciona estrellas', 'Por favor selecciona una puntuación.', true);
+            return;
+        }
+        const usuario    = JSON.parse(sessionStorage.getItem('usuario'));
+        const comentario = document.getElementById('comentario-resena').value.trim();
+
+        const res = await fetch('/resenas/crear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id_pedido:  idPedido,
+                id_usuario: usuario.id,
+                id_artista: idArtista,
+                puntuacion,
+                comentario
+            })
+        });
+
+        const data = await res.json();
+        modal.remove();
+
+        if (res.ok) {
+            mostrarModal('🌸', '¡Gracias!', 'Tu reseña fue publicada correctamente.');
+        } else {
+            mostrarModal('⚠️', 'Error', data.msg, true);
+        }
+    };
+
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+}
+
+function mostrarModalRevision(idPedido) {
+    const modalViejo = document.getElementById('modalRevision');
+    if (modalViejo) modalViejo.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modalRevision';
+    modal.className = 'modal-mensaje-overlay';
+    modal.innerHTML = `
+        <div class="modal-mensaje-box" style="max-width:420px">
+            <div class="modal-mensaje-icon">🖼️</div>
+            <h3 class="modal-mensaje-titulo">Enviar a revisión</h3>
+            <p class="modal-mensaje-texto">Adjunta una imagen del avance para que el cliente pueda aprobar o sugerir cambios.</p>
+            <label style="display:flex;flex-direction:column;gap:6px;margin:14px 0;text-align:left;font-size:13px;color:#aaa;cursor:pointer">
+                Imagen del avance (obligatoria)
+                <input type="file" id="inputImagenRevision" accept="image/*" style="font-size:13px;color:white;cursor:pointer">
+            </label>
+            <div id="previewRevision" style="display:none;margin-bottom:12px;text-align:center">
+                <img id="imgPreviewRevision" style="max-width:100%;border-radius:10px;max-height:160px;object-fit:cover;">
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;margin-top:8px">
+                <button id="btnCancelarRevision" class="modal-mensaje-boton" style="background:#333;color:white">Cancelar</button>
+                <button id="btnEnviarRevision" class="modal-mensaje-boton">Enviar revisión</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.classList.add('show');
+
+    const inputImg = document.getElementById('inputImagenRevision');
+    inputImg.onchange = () => {
+        if (inputImg.files[0]) {
+            document.getElementById('imgPreviewRevision').src = URL.createObjectURL(inputImg.files[0]);
+            document.getElementById('previewRevision').style.display = 'block';
+        }
+    };
+
+    document.getElementById('btnCancelarRevision').onclick = () => modal.remove();
+
+    document.getElementById('btnEnviarRevision').onclick = async () => {
+        const file = inputImg.files[0];
+        if (!file) { mostrarModal('⚠️', 'Imagen requerida', 'Debes adjuntar una imagen del avance.', true); return; }
+
+        const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+        const res = await fetch(`/pedidos/${idPedido}/estado`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nuevoEstado: 'Revision' })
+        });
+        if (!res.ok) { mostrarModal('⚠️', 'Error', 'No se pudo actualizar el estado.', true); return; }
+
+        const formData = new FormData();
+        formData.append('id_pedido', idPedido);
+        formData.append('id_emisor', usuario.id);
+        formData.append('contenido', '🖼️ He enviado el avance a revisión. Por favor revisa la imagen y dime si hay cambios o si lo apruebas.');
+        formData.append('boceto', file);
+        await fetch('/chat/mensaje', { method: 'POST', body: formData });
+
+        modal.remove();
+        mostrarModal('✅', '¡Enviado a revisión!', 'El cliente recibirá tu avance en el chat.');
+        setTimeout(() => cargarEstadisticasVentas(), 900);
+    };
+
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+}
+
+function mostrarModalCompletar(idPedido) {
+    const modalViejo = document.getElementById('modalCompletar');
+    if (modalViejo) modalViejo.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'modalCompletar';
+    modal.className = 'modal-mensaje-overlay';
+    modal.innerHTML = `
+        <div class="modal-mensaje-box" style="max-width:420px">
+            <div class="modal-mensaje-icon">🎉</div>
+            <h3 class="modal-mensaje-titulo">Completar comisión</h3>
+            <p class="modal-mensaje-texto">Adjunta la imagen final de la obra para que el cliente pueda verla y dejar una reseña.</p>
+            <label style="display:flex;flex-direction:column;gap:6px;margin:14px 0;text-align:left;font-size:13px;color:#aaa;cursor:pointer">
+                Obra final (obligatoria)
+                <input type="file" id="inputImagenCompletar" accept="image/*" style="font-size:13px;color:white;cursor:pointer">
+            </label>
+            <div id="previewCompletar" style="display:none;margin-bottom:12px;text-align:center">
+                <img id="imgPreviewCompletar" style="max-width:100%;border-radius:10px;max-height:160px;object-fit:cover;">
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;margin-top:8px">
+                <button id="btnCancelarCompletar" class="modal-mensaje-boton" style="background:#333;color:white">Cancelar</button>
+                <button id="btnEnviarCompletar" class="modal-mensaje-boton" style="background:linear-gradient(90deg,#5ab05a,#3a803a);color:white">Completar</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.classList.add('show');
+
+    const inputImg = document.getElementById('inputImagenCompletar');
+    inputImg.onchange = () => {
+        if (inputImg.files[0]) {
+            document.getElementById('imgPreviewCompletar').src = URL.createObjectURL(inputImg.files[0]);
+            document.getElementById('previewCompletar').style.display = 'block';
+        }
+    };
+
+    document.getElementById('btnCancelarCompletar').onclick = () => modal.remove();
+
+    document.getElementById('btnEnviarCompletar').onclick = async () => {
+        const file = inputImg.files[0];
+        if (!file) { mostrarModal('⚠️', 'Imagen requerida', 'Debes adjuntar la imagen final de la obra.', true); return; }
+
+        const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+        const res = await fetch(`/pedidos/${idPedido}/estado`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nuevoEstado: 'Completado' })
+        });
+        if (!res.ok) { mostrarModal('⚠️', 'Error', 'No se pudo completar el pedido.', true); return; }
+
+        const formData = new FormData();
+        formData.append('id_pedido', idPedido);
+        formData.append('id_emisor', usuario.id);
+        formData.append('contenido', '🎉 ¡Comisión completada! Aquí está tu obra final. Espero que te encante.');
+        formData.append('boceto', file);
+        await fetch('/chat/mensaje', { method: 'POST', body: formData });
+
+        modal.remove();
+        mostrarModal('🎉', '¡Completado!', 'La obra fue enviada al cliente.');
+        setTimeout(() => cargarEstadisticasVentas(), 900);
+    };
+
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+}
 
 })();

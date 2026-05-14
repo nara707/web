@@ -26,11 +26,7 @@ app.use('/HTML', express.static(path.join(__dirname, 'HTML')));
 const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
-<<<<<<< HEAD
     password: '',
-=======
-    password: '#Flan2612',
->>>>>>> c238e044f5896b0c108680ef385e0d25e5a0a5ec
     database: 'pia_pw2',
     port: 3306
 });
@@ -372,8 +368,15 @@ app.get('/api/perfil-publico', async (req, res) => {
 //     if (!id_usuario || !id_artista || !total) {
 //         return res.status(400).json({ msg: "Faltan campos obligatorios" });
 //     }
+// --- ENDPOINT PARA COMISIONAR ---
+app.post('/pedidos/crear', async (req, res) => {
+    console.log("BODY RECIBIDO:", req.body);
+    const { id_usuario, id_artista, id_publicacion, personalizacion, total, metodo_pago } = req.body;
 
-<<<<<<< HEAD
+    if (!id_usuario || !id_artista || !total) {
+        return res.status(400).json({ msg: "Faltan campos obligatorios" });
+    }
+
     try {
         await db.promise().beginTransaction();
 
@@ -405,21 +408,6 @@ app.get('/api/perfil-publico', async (req, res) => {
         return res.status(500).json({ msg: "Error en el servidor" });
     }
 });
-=======
-//     try {
-//         const [result] = await db.promise().query(
-//             `INSERT INTO pedidos (ID_Usuario, ID_Artista, ID_Publicacion, Personalizacion, Total, MetodoPago, Estado)
-//              VALUES (?, ?, ?, ?, ?, ?, 'pendiente')`,
-//             [id_usuario, id_artista, id_publicacion || null, personalizacion || '', total, metodo_pago || '']
-//         );
-
-//         return res.status(201).json({ msg: "Pedido creado", id_pedido: result.insertId });
-//     } catch (err) {
-//         console.error("Error al crear pedido:", err);
-//         return res.status(500).json({ msg: "Error en el servidor" });
-//     }
-// });
->>>>>>> c238e044f5896b0c108680ef385e0d25e5a0a5ec
 
 // ==================== PEDIDOS / COMISIONES ====================
 
@@ -906,11 +894,8 @@ io.on('connection', (socket) => {
         console.log('🔌 Cliente desconectado del chat');
     });
 });
-<<<<<<< HEAD
 
 // --- INICIO DEL SERVIDOR ---
 server.listen(puerto, () => {
     console.log(`Servidor corriendo en http://localhost:${puerto}`);
 });
-=======
->>>>>>> c238e044f5896b0c108680ef385e0d25e5a0a5ec
