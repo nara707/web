@@ -1111,3 +1111,142 @@ input[type="file"] {
     font-size: 13px;
     font-family: 'DM Sans', sans-serif;
 }
+
+ .edit-field-hidden {
+      display: none !important;
+    }
+
+    .editar-container {
+      width: 100%;
+      text-align: center;
+    }
+
+    .boton-editar-perfil {
+      background: linear-gradient(90deg, #c87ce8, #b05ad0);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 50px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      box-shadow: 0 4px 10px rgba(176, 90, 208, 0.3);
+      transition: all 0.2s;
+    }
+
+    .boton-editar-perfil:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(176, 90, 208, 0.4);
+    }
+
+    .filter-card input, .filter-card textarea {
+      width: 100%;
+      background: linear-gradient(90deg, rgba(224, 170, 238, 0.3), rgba(238, 187, 248, 0.3));
+      border: 1.5px solid rgba(176, 90, 208, 0.2);
+      border-radius: 50px;
+      padding: 8px 40px 8px 18px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      color: #5a1a7a;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .filter-card input:focus {
+      border-color: #b05ad0;
+      box-shadow: 0 0 0 3px rgba(176, 90, 208, 0.12);
+    }
+
+    .filter-card input::placeholder {
+      color: #b09ac0;
+    }
+
+    .btn-foto {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+
+      width: 100%;
+
+      background: white;
+      padding: 1rem 1.4rem;
+
+      border: none;
+      border-radius: 60px;
+
+      box-shadow: 0 4px 14px rgba(176, 90, 208, 0.08);
+
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      color: #5a1a7a;
+
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .filter-section button:hover {
+      transform: translateY(-2px);
+      background-color: none;
+      box-shadow: 0 6px 18px rgba(176, 90, 208, 0.16);
+    }
+
+    .tag-add-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .tag-add-row input {
+      flex: 1;
+    }
+
+ .tag-add-row button {
+  width: 50px;
+  height: 50px;
+
+  border: none;
+  border-radius: 50%;
+
+  background: rgba(255,255,255,0.75);
+  color: #7a3ba5;
+
+  font-size: 1.2rem;
+  font-weight: bold;
+
+  cursor: pointer;
+
+  flex-shrink: 0;
+
+  transition: all 0.2s ease;
+}
+
+.tag-add-row button:hover {
+  transform: scale(1.05);
+  background: white;
+}
+
+.tag-add-row button {
+  width: 50px;
+  height: 50px;
+
+  border: none;
+  border-radius: 50%;
+
+  background: rgba(255,255,255,0.75);
+  color: #7a3ba5;
+
+  font-size: 1.2rem;
+  font-weight: bold;
+
+  cursor: pointer;
+
+  flex-shrink: 0;
+
+  transition: all 0.2s ease;
+}
+
+.tag-add-row button:hover {
+  transform: scale(1.05);
+  background: white;
+}

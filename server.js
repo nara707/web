@@ -164,6 +164,78 @@ app.get('/api/perfil', async (req, res) => {
 });
 
 // --- OBTENER CATEGORÍAS ---
+
+// --- OBTENER TAGS DE UN USUARIO ---
+app.get('/api/tags/:id_usuario', async (req, res) => {
+    const { id_usuario } = req.params;
+    try {
+        const [tags] = await db.promise().query(
+            'SELECT ID_Tag, Nombre FROM usuario_tags WHERE ID_Usuario = ?',
+            [id_usuario]
+        );
+        res.json(tags);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ msg: "Error al obtener tags" });
+    }
+});
+
+// --- GUARDAR TAGS ---
+app.put('/api/tags/:id_usuario', async (req, res) => {
+    const { id_usuario } = req.params;
+    const { tags } = req.body;
+    try {
+        await db.promise().query(
+            'DELETE FROM usuario_tags WHERE ID_Usuario = ?',
+            [id_usuario]
+        );
+        if (tags && tags.length > 0) {
+            const values = tags.map(t => [id_usuario, t.trim()]);
+            await db.promise().query(
+                'INSERT INTO usuario_tags (ID_Usuario, Nombre) VALUES ?',
+                [values]
+            );
+        }
+        res.json({ msg: "Tags actualizados" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ msg: "Error al guardar tags" });
+    }
+});
+
+// --- ACTUALIZAR NOMBRE Y BIOGRAFÍA ---
+app.put('/api/perfil/:id_usuario', async (req, res) => {
+    const { id_usuario } = req.params;
+    const { nombre, biografia } = req.body;
+    try {
+        await db.promise().query(
+            'UPDATE usuario SET Nombre = ?, Biografia = ? WHERE ID_Usuario = ?',
+            [nombre, biografia, id_usuario]
+        );
+        res.json({ msg: "Perfil actualizado" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ msg: "Error al actualizar perfil" });
+    }
+});
+
+// --- ACTUALIZAR FOTO ---
+app.put('/api/perfil/:id_usuario/foto', async (req, res) => {
+    const { id_usuario } = req.params;
+    const { foto } = req.body;
+    if (!foto) return res.status(400).json({ msg: "Falta la foto" });
+    try {
+        await db.promise().query(
+            'UPDATE usuario SET fdp = ? WHERE ID_Usuario = ?',
+            [foto, id_usuario]
+        );
+        res.json({ msg: "Foto actualizada" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ msg: "Error al actualizar foto" });
+    }
+});
+
 app.get('/categorias', async (req, res) => {
     try {
         const [categorias] = await db.promise().query(

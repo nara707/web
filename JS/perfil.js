@@ -1,10 +1,9 @@
 // Funcion para actualizar el navbar
 function actualizarNavbar() {
-  const usuario = sessionStorage.getItem('usuario');
-  const navLinks = document.querySelector('.nav-links');
-
-  if (usuario) {
-    navLinks.innerHTML = `
+    const usuario = sessionStorage.getItem('usuario');
+    const navLinks = document.querySelector('.nav-links');
+    if (usuario) {
+        navLinks.innerHTML = `
       <a href="/landing">Explora</a>
       <a href="/landing#categorias">Categorías</a>
       <a href="/basket">Canasta</a>
@@ -13,7 +12,7 @@ function actualizarNavbar() {
         <span class="material-symbols-outlined">logout</span>
       </span>
     `;
-  }
+    }
 }
 
 function cerrarSesion() {
@@ -23,43 +22,239 @@ function cerrarSesion() {
 
 actualizarNavbar();
 
-// -- Cargar nombre y foto del perfil --
+// ============================================
+// EDICIÓN DE PERFIL (código de compañera)
+// ============================================
+let modoEdicion = false;
+let tagsActuales = [];
+let nuevaFotoBase64 = null;
+
 async function cargarPerfil() {
     const usuario = JSON.parse(sessionStorage.getItem('usuario'));
-    if (!usuario) {
-        window.location.href = '/login';
-        return;
-    }
+    if (!usuario) { window.location.href = '/login'; return; }
+
     try {
         const res = await fetch(`/api/perfil?correo=${encodeURIComponent(usuario.correo)}`);
         const data = await res.json();
 
-        const nombreEl = document.querySelector('.filter-card .filter-section h4');
-        if (nombreEl) nombreEl.textContent = data.nombre;
+        const labelNombre = document.getElementById('label-nombre');
+        const nameInput = document.getElementById('nameInput');
+        if (labelNombre) labelNombre.textContent = data.nombre || usuario.nombre;
+        if (nameInput) nameInput.value = data.nombre || usuario.nombre;
+
+        const descDisplay = document.getElementById('desc-display');
+        const descInput = document.getElementById('descriptionInput');
+        const desc = usuario.descripcion || data.biografia || '';
+        if (descDisplay) descDisplay.textContent = desc;
+        if (descInput) descInput.value = desc;
 
         const avatar = document.querySelector('.large-avatar');
-        if (avatar && data.foto) {
-            avatar.style.backgroundImage = `url('${data.foto}')`;
+        const foto = data.foto || usuario.foto;
+        if (avatar && foto) {
+            avatar.style.backgroundImage = `url('${foto}')`;
             avatar.style.backgroundSize = 'cover';
             avatar.style.backgroundPosition = 'center';
         }
+
+        try {
+            const resTags = await fetch(`/api/tags/${usuario.id}`);
+            tagsActuales = (await resTags.json()).map(t => t.Nombre);
+        } catch {
+            tagsActuales = [];
+        }
+        renderTags();
+
     } catch (err) {
         console.error('Error cargando perfil:', err);
     }
 }
+
+function renderTags() {
+    const group = document.getElementById('tag-group');
+    if (!group) return;
+    group.innerHTML = '';
+    tagsActuales.forEach((tag, i) => {
+        const span = document.createElement('span');
+        span.className = 'filter-tag';
+        span.innerHTML = tag + (modoEdicion
+            ? `<button class="tag-remove" onclick="eliminarTag(${i})">×</button>`
+            : '');
+        group.appendChild(span);
+    });
+}
+
+function eliminarTag(index) {
+    tagsActuales.splice(index, 1);
+    renderTags();
+}
+
+function agregarTag() {
+    const input = document.getElementById('tagInput');
+    const valor = input.value.trim();
+    if (!valor) return;
+    if (tagsActuales.includes(valor)) { input.value = ''; return; }
+    if (tagsActuales.length >= 8) return;
+    tagsActuales.push(valor);
+    input.value = '';
+    renderTags();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('tagInput')?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); agregarTag(); }
+    });
+});
+
+function previewFoto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        nuevaFotoBase64 = e.target.result;
+        const avatar = document.querySelector('.large-avatar');
+        if (avatar) {
+            avatar.style.backgroundImage = `url('${nuevaFotoBase64}')`;
+            avatar.style.backgroundSize = 'cover';
+            avatar.style.backgroundPosition = 'center';
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+function toggleEditar() {
+    modoEdicion = !modoEdicion;
+    const btn = document.getElementById('boton-editar');
+    const labelNombre = document.getElementById('label-nombre');
+    const nameInput = document.getElementById('nameInput');
+    const descDisplay = document.getElementById('desc-display');
+    const descInput = document.getElementById('descriptionInput');
+    const tagAddRow = document.getElementById('tag-add-row');
+    const btnFoto = document.getElementById('btn-cambiar-foto');
+
+    if (modoEdicion) {
+        labelNombre.classList.add('edit-field-hidden');
+        nameInput.classList.remove('edit-field-hidden');
+        descDisplay.classList.add('edit-field-hidden');
+        descInput.classList.remove('edit-field-hidden');
+        tagAddRow.classList.remove('edit-field-hidden');
+        btnFoto.classList.remove('edit-field-hidden');
+        btn.textContent = 'Guardar cambios';
+    } else {
+        const nuevoNombre = nameInput.value.trim();
+        const nuevaDesc = descInput.value.trim();
+
+        if (!nuevoNombre) {
+            nameInput.style.border = '1.5px solid #e87a7a';
+            nameInput.focus();
+            modoEdicion = true;
+            return;
+        }
+        nameInput.style.border = '';
+
+        labelNombre.classList.remove('edit-field-hidden');
+        nameInput.classList.add('edit-field-hidden');
+        descDisplay.classList.remove('edit-field-hidden');
+        descInput.classList.add('edit-field-hidden');
+        tagAddRow.classList.add('edit-field-hidden');
+        btnFoto.classList.add('edit-field-hidden');
+        btn.textContent = 'Editar perfil';
+
+        guardarCambios(nuevoNombre, nuevaDesc);
+    }
+
+    renderTags();
+}
+
+async function guardarCambios(nuevoNombre, nuevaDesc) {
+    const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+    if (!usuario) return;
+
+    const promesas = [];
+
+    promesas.push(
+        fetch(`/api/perfil/${usuario.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre: nuevoNombre, biografia: nuevaDesc })
+        })
+    );
+
+    promesas.push(
+        fetch(`/api/tags/${usuario.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tags: tagsActuales })
+        })
+    );
+
+    if (nuevaFotoBase64) {
+        promesas.push(
+            fetch(`/api/perfil/${usuario.id}/foto`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ foto: nuevaFotoBase64 })
+            })
+        );
+    }
+
+    try {
+        await Promise.all(promesas);
+
+        usuario.nombre = nuevoNombre;
+        usuario.descripcion = nuevaDesc;
+        if (nuevaFotoBase64) usuario.foto = nuevaFotoBase64;
+        sessionStorage.setItem('usuario', JSON.stringify(usuario));
+        nuevaFotoBase64 = null;
+
+        document.getElementById('label-nombre').textContent = nuevoNombre;
+        const descDisplay = document.getElementById('desc-display');
+        if (descDisplay) descDisplay.textContent = nuevaDesc;
+
+        if (typeof Swal !== 'undefined') {
+            await Swal.fire({
+                icon: 'success',
+                title: 'Cambios guardados',
+                text: 'Tu perfil se actualizó con éxito.',
+                timer: 2500,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                color: '#3a0a5a',
+                iconColor: '#b05ad0',
+                confirmButtonColor: '#b05ad0'
+            });
+        }
+
+    } catch (err) {
+        console.error('Error al guardar:', err);
+        if (typeof Swal !== 'undefined') {
+            await Swal.fire({
+                icon: 'error',
+                title: 'Error al guardar',
+                text: 'Ocurrió un error al guardar los cambios.',
+                timer: 2500,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                color: '#3a0a5a',
+                iconColor: '#b05ad0',
+                confirmButtonColor: '#b05ad0'
+            });
+        }
+    }
+}
+
 cargarPerfil();
 
 // ============================================
-// INICIO DEL IIFE
+// IIFE PRINCIPAL
 // ============================================
 (function () {
     // ── Estrellas ──
-    const sc = ['#e8d87a','#d899e8','#ffffff','#f0c8a0','#b05ad0'];
-    function rc(){return sc[Math.floor(Math.random()*sc.length)];}
-    function s4(r){const p=[];for(let i=0;i<8;i++){const a=(i*Math.PI)/4-Math.PI/2,rad=i%2===0?r:r*.4;p.push(`${rad*Math.cos(a)},${rad*Math.sin(a)}`);}return p.join(' ');}
-    function s6(r){const p=[];for(let i=0;i<12;i++){const a=(i*Math.PI)/6-Math.PI/2,rad=i%2===0?r:r*.45;p.push(`${rad*Math.cos(a)},${rad*Math.sin(a)}`);}return p.join(' ');}
-    const sh=[s=>`<polygon points="${s4(s)}" fill="${rc()}" opacity=".6"/>`,s=>`<polygon points="${s6(s)}" fill="${rc()}" opacity=".55"/>`,s=>`<polygon points="0,${-s} ${s*.4},0 0,${s} ${-s*.4},0" fill="${rc()}" opacity=".7"/>`];
-    [{size:10,left:4,dur:'10s',delay:'0s'},{size:14,left:14,dur:'13s',delay:'2s'},{size:8,left:24,dur:'9s',delay:'5s'},{size:16,left:36,dur:'12s',delay:'1s'},{size:10,left:50,dur:'8s',delay:'3.5s'},{size:18,left:62,dur:'15s',delay:'0.5s'},{size:11,left:74,dur:'11s',delay:'7s'},{size:9,left:85,dur:'9s',delay:'2.5s'},{size:13,left:94,dur:'12s',delay:'4s'}].forEach(d=>{const sv=sh[Math.floor(Math.random()*sh.length)];const svg=`<svg viewBox="${-d.size} ${-d.size} ${d.size*2} ${d.size*2}" width="${d.size*2}" height="${d.size*2}">${sv(d.size)}</svg>`;const el=document.createElement('div');el.className='star';el.style.cssText=`left:${d.left}%;bottom:-${d.size*2}px;--dur:${d.dur};--delay:${d.delay}`;el.innerHTML=svg;document.body.appendChild(el);});
+    const sc = ['#e8d87a', '#d899e8', '#ffffff', '#f0c8a0', '#b05ad0'];
+    function rc() { return sc[Math.floor(Math.random() * sc.length)]; }
+    function s4(r) { const p = []; for (let i = 0; i < 8; i++) { const a = (i * Math.PI) / 4 - Math.PI / 2, rad = i % 2 === 0 ? r : r * .4; p.push(`${rad * Math.cos(a)},${rad * Math.sin(a)}`); } return p.join(' '); }
+    function s6(r) { const p = []; for (let i = 0; i < 12; i++) { const a = (i * Math.PI) / 6 - Math.PI / 2, rad = i % 2 === 0 ? r : r * .45; p.push(`${rad * Math.cos(a)},${rad * Math.sin(a)}`); } return p.join(' '); }
+    const sh = [s => `<polygon points="${s4(s)}" fill="${rc()}" opacity=".6"/>`, s => `<polygon points="${s6(s)}" fill="${rc()}" opacity=".55"/>`, s => `<polygon points="0,${-s} ${s * .4},0 0,${s} ${-s * .4},0" fill="${rc()}" opacity=".7"/>`];
+    [{ size: 10, left: 4, dur: '10s', delay: '0s' }, { size: 14, left: 14, dur: '13s', delay: '2s' }, { size: 8, left: 24, dur: '9s', delay: '5s' }, { size: 16, left: 36, dur: '12s', delay: '1s' }, { size: 10, left: 50, dur: '8s', delay: '3.5s' }, { size: 18, left: 62, dur: '15s', delay: '0.5s' }, { size: 11, left: 74, dur: '11s', delay: '7s' }, { size: 9, left: 85, dur: '9s', delay: '2.5s' }, { size: 13, left: 94, dur: '12s', delay: '4s' }].forEach(d => { const sv = sh[Math.floor(Math.random() * sh.length)]; const svg = `<svg viewBox="${-d.size} ${-d.size} ${d.size * 2} ${d.size * 2}" width="${d.size * 2}" height="${d.size * 2}">${sv(d.size)}</svg>`; const el = document.createElement('div'); el.className = 'star'; el.style.cssText = `left:${d.left}%;bottom:-${d.size * 2}px;--dur:${d.dur};--delay:${d.delay}`; el.innerHTML = svg; document.body.appendChild(el); });
 
     // ── Elementos DOM ──
     const grid = document.getElementById('cardsGrid');
@@ -68,6 +263,8 @@ cargarPerfil();
     const tabPub = document.getElementById('tab-publications');
     const tabSells = document.getElementById('tab-sells');
     const tabBasket = document.getElementById('tab-basket');
+    const sellsDashboard = document.getElementById('sells-dashboard');
+    const basketDashboard = document.getElementById('basket-dashboard');
 
     const modalMensaje = document.getElementById('modalMensaje');
     const modalIcon = document.getElementById('modalIcon');
@@ -90,16 +287,9 @@ cargarPerfil();
         modalMensaje.classList.add('show');
     }
 
-    function cerrarModal() {
-        if (modalMensaje) modalMensaje.classList.remove('show');
-    }
-
+    function cerrarModal() { if (modalMensaje) modalMensaje.classList.remove('show'); }
     if (modalCerrarBtn) modalCerrarBtn.addEventListener('click', cerrarModal);
-    if (modalMensaje) {
-        modalMensaje.addEventListener('click', (e) => {
-            if (e.target === modalMensaje) cerrarModal();
-        });
-    }
+    if (modalMensaje) modalMensaje.addEventListener('click', (e) => { if (e.target === modalMensaje) cerrarModal(); });
 
     // ── Estado general ──
     let currentTab = 'publications';
@@ -116,17 +306,16 @@ cargarPerfil();
     let currentComprasSort = null;
     let cachedCategorias = [];
 
-    // ── Helpers ──
     function obtenerClaseEstado(estado) {
-        switch(estado) {
-            case 'pendiente': return 'estado-pendiente';
-            case 'aprobado': return 'estado-aprobado';
-            case 'En proceso': return 'estado-en-proceso';
-            case 'Revision': return 'estado-revision';
-            case 'Completado': return 'estado-completado';
-            case 'Cancelado': return 'estado-cancelado';
-            default: return 'estado-pendiente';
-        }
+        const map = {
+            'pendiente': 'estado-pendiente',
+            'aprobado': 'estado-aprobado',
+            'En proceso': 'estado-en-proceso',
+            'Revision': 'estado-revision',
+            'Completado': 'estado-completado',
+            'Cancelado': 'estado-cancelado',
+        };
+        return map[estado] || 'estado-pendiente';
     }
 
     async function obtenerCategorias() {
@@ -142,96 +331,81 @@ cargarPerfil();
     }
 
     // ============================================
-    // MODAL DE REVISIÓN — obliga a subir imagen
+    // MODAL DE REVISIÓN — imagen obligatoria
     // ============================================
     function mostrarModalRevision(idPedido) {
-        let modal = document.getElementById('modalRevision');
-        if (!modal) {
-            modal = document.createElement('div');
-            modal.id = 'modalRevision';
-            modal.className = 'modal-mensaje-overlay';
-            modal.innerHTML = `
-                <div class="modal-mensaje-box" style="max-width:420px">
-                    <div class="modal-mensaje-icon">🖼️</div>
-                    <h3 class="modal-mensaje-titulo">Enviar a revisión</h3>
-                    <p class="modal-mensaje-texto">Adjunta una imagen del avance para que el cliente pueda aprobar o sugerir cambios.</p>
-                    <label style="display:flex;flex-direction:column;gap:6px;margin:14px 0;text-align:left;font-size:13px;color:#aaa;cursor:pointer">
-                        Imagen del avance (obligatoria)
-                        <input type="file" id="inputImagenRevision" accept="image/*" style="font-size:13px;color:white;cursor:pointer">
-                    </label>
-                    <div id="previewRevision" style="display:none;margin-bottom:12px;text-align:center">
-                        <img id="imgPreviewRevision" style="max-width:100%;border-radius:10px;max-height:160px;object-fit:cover;">
-                    </div>
-                    <div style="display:flex;gap:10px;justify-content:center;margin-top:8px">
-                        <button id="btnCancelarRevision" class="modal-mensaje-boton" style="background:#333;color:white">Cancelar</button>
-                        <button id="btnEnviarRevision" class="modal-mensaje-boton">Enviar revisión</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
+        const modalViejo = document.getElementById('modalRevision');
+        if (modalViejo) modalViejo.remove();
 
+        const modal = document.createElement('div');
+        modal.id = 'modalRevision';
+        modal.className = 'modal-mensaje-overlay';
+        modal.innerHTML = `
+            <div class="modal-mensaje-box" style="max-width:420px">
+                <div class="modal-mensaje-icon">🖼️</div>
+                <h3 class="modal-mensaje-titulo">Enviar a revisión</h3>
+                <p class="modal-mensaje-texto">Adjunta una imagen del avance para que el cliente pueda aprobar o sugerir cambios.</p>
+                <label style="display:flex;flex-direction:column;gap:6px;margin:14px 0;text-align:left;font-size:13px;color:#aaa;cursor:pointer">
+                    Imagen del avance (obligatoria)
+                    <input type="file" id="inputImagenRevision" accept="image/*" style="font-size:13px;color:white;cursor:pointer">
+                </label>
+                <div id="previewRevision" style="display:none;margin-bottom:12px;text-align:center">
+                    <img id="imgPreviewRevision" style="max-width:100%;border-radius:10px;max-height:160px;object-fit:cover;">
+                </div>
+                <div style="display:flex;gap:10px;justify-content:center;margin-top:8px">
+                    <button id="btnCancelarRevision" class="modal-mensaje-boton" style="background:#333;color:white">Cancelar</button>
+                    <button id="btnEnviarRevision" class="modal-mensaje-boton">Enviar revisión</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
         modal.classList.add('show');
 
         const inputImg = document.getElementById('inputImagenRevision');
-        inputImg.value = '';
-        document.getElementById('previewRevision').style.display = 'none';
-
         inputImg.onchange = () => {
-            const file = inputImg.files[0];
-            if (file) {
-                document.getElementById('imgPreviewRevision').src = URL.createObjectURL(file);
+            if (inputImg.files[0]) {
+                document.getElementById('imgPreviewRevision').src = URL.createObjectURL(inputImg.files[0]);
                 document.getElementById('previewRevision').style.display = 'block';
             }
         };
 
-        document.getElementById('btnCancelarRevision').onclick = () => {
-            modal.classList.remove('show');
-        };
+        document.getElementById('btnCancelarRevision').onclick = () => modal.remove();
 
         document.getElementById('btnEnviarRevision').onclick = async () => {
             const file = inputImg.files[0];
-            if (!file) {
-                mostrarModal('⚠️', 'Imagen requerida', 'Debes adjuntar una imagen del avance para continuar.', true);
-                return;
-            }
+            if (!file) { mostrarModal('⚠️', 'Imagen requerida', 'Debes adjuntar una imagen del avance.', true); return; }
 
             const usuario = JSON.parse(sessionStorage.getItem('usuario'));
-
-            // 1. Actualizar estado a Revision
             const res = await fetch(`/pedidos/${idPedido}/estado`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ nuevoEstado: 'Revision' })
             });
+            if (!res.ok) { mostrarModal('⚠️', 'Error', 'No se pudo actualizar el estado.', true); return; }
 
-            if (!res.ok) {
-                mostrarModal('⚠️', 'Error', 'No se pudo actualizar el estado.', true);
-                return;
-            }
-
-            // 2. Enviar mensaje automático con boceto
             const formData = new FormData();
             formData.append('id_pedido', idPedido);
             formData.append('id_emisor', usuario.id);
             formData.append('contenido', '🖼️ He enviado el avance a revisión. Por favor revisa la imagen y dime si hay cambios o si lo apruebas.');
             formData.append('boceto', file);
-
             await fetch('/chat/mensaje', { method: 'POST', body: formData });
 
-            modal.classList.remove('show');
+            modal.remove();
             mostrarModal('✅', '¡Enviado a revisión!', 'El cliente recibirá tu avance en el chat.');
             setTimeout(() => renderizarVentas(), 900);
         };
 
-        // Cerrar al click fuera
-        modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('show'); };
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
     }
 
-function mostrarModalCompletar(idPedido) {
-    let modal = document.getElementById('modalCompletar');
-    if (!modal) {
-        modal = document.createElement('div');
+    // ============================================
+    // MODAL DE COMPLETAR — imagen obligatoria
+    // ============================================
+    function mostrarModalCompletar(idPedido) {
+        const modalViejo = document.getElementById('modalCompletar');
+        if (modalViejo) modalViejo.remove();
+
+        const modal = document.createElement('div');
         modal.id = 'modalCompletar';
         modal.className = 'modal-mensaje-overlay';
         modal.innerHTML = `
@@ -253,63 +427,115 @@ function mostrarModalCompletar(idPedido) {
             </div>
         `;
         document.body.appendChild(modal);
+        modal.classList.add('show');
+
+        const inputImg = document.getElementById('inputImagenCompletar');
+        inputImg.onchange = () => {
+            if (inputImg.files[0]) {
+                document.getElementById('imgPreviewCompletar').src = URL.createObjectURL(inputImg.files[0]);
+                document.getElementById('previewCompletar').style.display = 'block';
+            }
+        };
+
+        document.getElementById('btnCancelarCompletar').onclick = () => modal.remove();
+
+        document.getElementById('btnEnviarCompletar').onclick = async () => {
+            const file = inputImg.files[0];
+            if (!file) { mostrarModal('⚠️', 'Imagen requerida', 'Debes adjuntar la imagen final de la obra.', true); return; }
+
+            const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+            const res = await fetch(`/pedidos/${idPedido}/estado`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nuevoEstado: 'Completado' })
+            });
+            if (!res.ok) { mostrarModal('⚠️', 'Error', 'No se pudo completar el pedido.', true); return; }
+
+            const formData = new FormData();
+            formData.append('id_pedido', idPedido);
+            formData.append('id_emisor', usuario.id);
+            formData.append('contenido', '🎉 ¡Comisión completada! Aquí está tu obra final. Espero que te encante.');
+            formData.append('boceto', file);
+            await fetch('/chat/mensaje', { method: 'POST', body: formData });
+
+            modal.remove();
+            mostrarModal('🎉', '¡Completado!', 'La obra fue enviada al cliente.');
+            setTimeout(() => renderizarVentas(), 900);
+        };
+
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
     }
 
-    modal.classList.add('show');
+    // ============================================
+    // MODAL DE RESEÑA
+    // ============================================
+    function mostrarModalResena(idPedido, idArtista) {
+        const modalViejo = document.getElementById('modalResena');
+        if (modalViejo) modalViejo.remove();
 
-    const inputImg = document.getElementById('inputImagenCompletar');
-    inputImg.value = '';
-    document.getElementById('previewCompletar').style.display = 'none';
+        const modal = document.createElement('div');
+        modal.id = 'modalResena';
+        modal.className = 'modal-mensaje-overlay';
+        modal.innerHTML = `
+            <div class="modal-mensaje-box" style="max-width:420px">
+                <div class="modal-mensaje-icon">⭐</div>
+                <h3 class="modal-mensaje-titulo">Dejar reseña</h3>
+                <p class="modal-mensaje-texto">¿Cómo fue tu experiencia con este artista?</p>
+                <div style="display:flex;gap:8px;justify-content:center;margin:16px 0;font-size:32px;cursor:pointer">
+                    <span class="estrella" data-val="1">☆</span>
+                    <span class="estrella" data-val="2">☆</span>
+                    <span class="estrella" data-val="3">☆</span>
+                    <span class="estrella" data-val="4">☆</span>
+                    <span class="estrella" data-val="5">☆</span>
+                </div>
+                <input type="hidden" id="puntuacion-val" value="0">
+                <textarea id="comentario-resena" placeholder="Cuéntanos sobre tu experiencia (opcional)..."
+                    style="width:100%;background:#2a1040;border:1px solid #ffffff15;border-radius:10px;
+                    padding:10px;color:white;font-family:'DM Sans',sans-serif;font-size:13px;
+                    resize:vertical;min-height:80px;margin-bottom:14px;box-sizing:border-box"></textarea>
+                <div style="display:flex;gap:10px;justify-content:center">
+                    <button id="btnCancelarResena" class="modal-mensaje-boton" style="background:#333;color:white">Cancelar</button>
+                    <button id="btnEnviarResena" class="modal-mensaje-boton">Publicar reseña</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.classList.add('show');
 
-    inputImg.onchange = () => {
-        const file = inputImg.files[0];
-        if (file) {
-            document.getElementById('imgPreviewCompletar').src = URL.createObjectURL(file);
-            document.getElementById('previewCompletar').style.display = 'block';
-        }
-    };
-
-    document.getElementById('btnCancelarCompletar').onclick = () => {
-        modal.classList.remove('show');
-    };
-
-    document.getElementById('btnEnviarCompletar').onclick = async () => {
-        const file = inputImg.files[0];
-        if (!file) {
-            mostrarModal('⚠️', 'Imagen requerida', 'Debes adjuntar la imagen final de la obra.', true);
-            return;
-        }
-
-        const usuario = JSON.parse(sessionStorage.getItem('usuario'));
-
-        // 1. Actualizar estado a Completado
-        const res = await fetch(`/pedidos/${idPedido}/estado`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nuevoEstado: 'Completado' })
+        const estrellas = modal.querySelectorAll('.estrella');
+        estrellas.forEach(estrella => {
+            estrella.onmouseover = () => estrellas.forEach(e => e.textContent = e.dataset.val <= estrella.dataset.val ? '★' : '☆');
+            estrella.onmouseout = () => {
+                const val = document.getElementById('puntuacion-val').value;
+                estrellas.forEach(e => e.textContent = e.dataset.val <= val ? '★' : '☆');
+            };
+            estrella.onclick = () => {
+                document.getElementById('puntuacion-val').value = estrella.dataset.val;
+                estrellas.forEach(e => e.textContent = e.dataset.val <= estrella.dataset.val ? '★' : '☆');
+            };
         });
 
-        if (!res.ok) {
-            mostrarModal('⚠️', 'Error', 'No se pudo completar el pedido.', true);
-            return;
-        }
+        document.getElementById('btnCancelarResena').onclick = () => modal.remove();
 
-        // 2. Enviar mensaje final con la imagen de la obra
-        const formData = new FormData();
-        formData.append('id_pedido', idPedido);
-        formData.append('id_emisor', usuario.id);
-        formData.append('contenido', '🎉 ¡Comisión completada! Aquí está tu obra final. Espero que te encante, fue un placer trabajar en esto.');
-        formData.append('boceto', file);
+        document.getElementById('btnEnviarResena').onclick = async () => {
+            const puntuacion = parseInt(document.getElementById('puntuacion-val').value);
+            if (!puntuacion) { mostrarModal('⚠️', 'Selecciona estrellas', 'Por favor selecciona una puntuación.', true); return; }
+            const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+            const comentario = document.getElementById('comentario-resena').value.trim();
 
-        await fetch('/chat/mensaje', { method: 'POST', body: formData });
+            const res = await fetch('/resenas/crear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id_pedido: idPedido, id_usuario: usuario.id, id_artista: idArtista, puntuacion, comentario })
+            });
+            const data = await res.json();
+            modal.remove();
+            if (res.ok) mostrarModal('🌸', '¡Gracias!', 'Tu reseña fue publicada correctamente.');
+            else mostrarModal('⚠️', 'Error', data.msg, true);
+        };
 
-        modal.classList.remove('show');
-        mostrarModal('🎉', '¡Completado!', 'La obra fue enviada al cliente.');
-        setTimeout(() => renderizarVentas(), 900);
-    };
-
-    modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('show'); };
-}
+        modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    }
 
     // ============================================
     // SECCIÓN 1: PUBLICACIONES
@@ -323,11 +549,7 @@ function mostrarModalCompletar(idPedido) {
         todoChip.className = 'chip-filter' + (currentPublicationsFilter === 'all' ? ' active' : '');
         todoChip.dataset.filter = 'all';
         todoChip.textContent = 'Todo';
-        todoChip.addEventListener('click', () => {
-            currentPublicationsFilter = 'all';
-            buildSubfilterChipsPublications();
-            renderPublications();
-        });
+        todoChip.addEventListener('click', () => { currentPublicationsFilter = 'all'; buildSubfilterChipsPublications(); renderPublications(); });
         subfilterRow.appendChild(todoChip);
 
         categoriasFiltro.forEach(cat => {
@@ -335,11 +557,7 @@ function mostrarModalCompletar(idPedido) {
             chip.className = 'chip-filter' + (currentPublicationsFilter === cat.id ? ' active' : '');
             chip.dataset.filter = cat.id;
             chip.textContent = cat.nombre;
-            chip.addEventListener('click', () => {
-                currentPublicationsFilter = cat.id;
-                buildSubfilterChipsPublications();
-                renderPublications();
-            });
+            chip.addEventListener('click', () => { currentPublicationsFilter = cat.id; buildSubfilterChipsPublications(); renderPublications(); });
             subfilterRow.appendChild(chip);
         });
     }
@@ -382,26 +600,15 @@ function mostrarModalCompletar(idPedido) {
 
     function renderPublications() {
         let filtered = [...allCards];
-
-        if (currentPublicationsFilter !== 'all') {
-            filtered = filtered.filter(c => c.category == currentPublicationsFilter);
-        }
-
+        if (currentPublicationsFilter !== 'all') filtered = filtered.filter(c => c.category == currentPublicationsFilter);
         if (currentPublicationsSort === 'date') {
-            filtered.sort((a, b) => {
-                const da = new Date(a.date), db = new Date(b.date);
-                return publicationsSortOrder === 'desc' ? db - da : da - db;
-            });
+            filtered.sort((a, b) => { const da = new Date(a.date), db = new Date(b.date); return publicationsSortOrder === 'desc' ? db - da : da - db; });
         } else if (currentPublicationsSort === 'likes') {
             filtered.sort((a, b) => parseFloat(b.likes) - parseFloat(a.likes));
         }
 
         grid.className = 'cards-grid';
-
-        if (filtered.length === 0) {
-            grid.innerHTML = '<p style="color:#888; padding:2rem;">No hay publicaciones aún.</p>';
-            return;
-        }
+        if (filtered.length === 0) { grid.innerHTML = '<p style="color:#888; padding:2rem;">No hay publicaciones aún.</p>'; return; }
 
         grid.innerHTML = filtered.map(card => {
             const bg = card.image
@@ -447,14 +654,12 @@ function mostrarModalCompletar(idPedido) {
         subfilterRow.innerHTML = `
             <span class="chip-filter ${currentVentasFilter === 'all' ? 'active' : ''}" data-filter="all">Todos</span>
             ${categorias.map(cat => `
-                <span class="chip-filter ${currentVentasFilter === cat.ID_Categoria ? 'active' : ''}" 
-                      data-filter="${cat.ID_Categoria}">${cat.Nombre}</span>
+                <span class="chip-filter ${currentVentasFilter === cat.ID_Categoria ? 'active' : ''}" data-filter="${cat.ID_Categoria}">${cat.Nombre}</span>
             `).join('')}
         `;
         document.querySelectorAll('#subfilterRow .chip-filter').forEach(chip => {
             chip.addEventListener('click', async () => {
-                const filterValue = chip.dataset.filter;
-                currentVentasFilter = filterValue === 'all' ? 'all' : parseInt(filterValue);
+                currentVentasFilter = chip.dataset.filter === 'all' ? 'all' : parseInt(chip.dataset.filter);
                 await renderizarFiltrosCategoriasVentas();
                 await renderizarVentas();
             });
@@ -465,18 +670,11 @@ function mostrarModalCompletar(idPedido) {
         await cargarVentas();
         grid.className = 'pedidos-container';
 
-        if (allVentas.length === 0) {
-            grid.innerHTML = '<div class="empty-message">✨ No tienes ventas aún. ✨</div>';
-            return;
-        }
+        if (allVentas.length === 0) { grid.innerHTML = '<div class="empty-message">✨ No tienes ventas aún. ✨</div>'; return; }
 
         let filtered = [...allVentas];
-        if (currentVentasFilter !== 'all') {
-            filtered = filtered.filter(venta => venta.ID_Categoria == currentVentasFilter);
-        }
-        if (currentVentasSort === 'date') {
-            filtered.sort((a, b) => new Date(b.Fecha_Pedido) - new Date(a.Fecha_Pedido));
-        }
+        if (currentVentasFilter !== 'all') filtered = filtered.filter(v => v.ID_Categoria == currentVentasFilter);
+        if (currentVentasSort === 'date') filtered.sort((a, b) => new Date(b.Fecha_Pedido) - new Date(a.Fecha_Pedido));
 
         grid.innerHTML = filtered.map(venta => {
             const estadoClass = obtenerClaseEstado(venta.Estado);
@@ -495,26 +693,18 @@ function mostrarModalCompletar(idPedido) {
                             </div>
                             <span class="pedido-estado ${estadoClass}">${venta.Estado}</span>
                         </div>
-                        ${venta.Personalizacion ? `
-                            <div class="pedido-personalizacion">
-                                <strong>Personalización:</strong> ${venta.Personalizacion}
-                            </div>
-                        ` : ''}
+                        ${venta.Personalizacion ? `<div class="pedido-personalizacion"><strong>Personalización:</strong> ${venta.Personalizacion}</div>` : ''}
                         <div class="pedido-footer">
                             <span class="pedido-precio">$${parseFloat(venta.Total).toFixed(2)} USD</span>
                             <span class="pedido-fecha">${new Date(venta.Fecha_Pedido).toLocaleDateString()}</span>
                         </div>
                         <div class="pedido-acciones">
-                            <button class="btn-chat-pedido" data-id="${venta.ID_Pedido}" data-nombre="${venta.ClienteNombre || 'Cliente'}">
-                                💬 Chat
-                            </button>
+                            <button class="btn-chat-pedido" data-id="${venta.ID_Pedido}" data-nombre="${venta.ClienteNombre || 'Cliente'}">💬 Chat</button>
                             ${venta.Estado === 'pendiente' ? `
                                 <button class="btn-aprobar" data-id="${venta.ID_Pedido}">✓ Aprobar</button>
                                 <button class="btn-rechazar" data-id="${venta.ID_Pedido}">✗ Rechazar</button>
                             ` : ''}
-                            ${venta.Estado === 'aprobado' ? `
-                                <button class="btn-iniciar" data-id="${venta.ID_Pedido}">▶ Iniciar trabajo</button>
-                            ` : ''}
+                            ${venta.Estado === 'aprobado' ? `<button class="btn-iniciar" data-id="${venta.ID_Pedido}">▶ Iniciar trabajo</button>` : ''}
                             ${venta.Estado === 'En proceso' ? `
                                 <button class="btn-revision" data-id="${venta.ID_Pedido}">🔄 Enviar a revisión</button>
                                 <button class="btn-completar" data-id="${venta.ID_Pedido}">✅ Completar</button>
@@ -529,31 +719,15 @@ function mostrarModalCompletar(idPedido) {
             `;
         }).join('');
 
-        // Event listeners ventas
-        document.querySelectorAll('.btn-aprobar').forEach(btn => {
-            btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'aprobado', 'ventas'));
-        });
-        document.querySelectorAll('.btn-rechazar').forEach(btn => {
-            btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'rechazar', 'ventas'));
-        });
-        document.querySelectorAll('.btn-iniciar, .btn-retomar').forEach(btn => {
-            btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'En proceso', 'ventas'));
-        });
-        // ⚠️ Revisión ahora abre el modal con imagen obligatoria
-        document.querySelectorAll('.btn-revision').forEach(btn => {
-            btn.addEventListener('click', () => mostrarModalRevision(btn.dataset.id));
-        });
-        document.querySelectorAll('.btn-completar').forEach(btn => {
-    btn.addEventListener('click', () => mostrarModalCompletar(btn.dataset.id));
-});
-        // Chat
+        document.querySelectorAll('.btn-aprobar').forEach(btn => btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'aprobado', 'ventas')));
+        document.querySelectorAll('.btn-rechazar').forEach(btn => btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'rechazar', 'ventas')));
+        document.querySelectorAll('.btn-iniciar, .btn-retomar').forEach(btn => btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'En proceso', 'ventas')));
+        document.querySelectorAll('.btn-revision').forEach(btn => btn.addEventListener('click', () => mostrarModalRevision(btn.dataset.id)));
+        document.querySelectorAll('.btn-completar').forEach(btn => btn.addEventListener('click', () => mostrarModalCompletar(btn.dataset.id)));
         document.querySelectorAll('.btn-chat-pedido').forEach(btn => {
             btn.addEventListener('click', () => {
-                if (window.abrirChatDesdePedido) {
-                    window.abrirChatDesdePedido(parseInt(btn.dataset.id), btn.dataset.nombre);
-                } else {
-                    mostrarModal('💬', 'Chat', 'El chat no está disponible en esta página.', true);
-                }
+                if (window.abrirChatDesdePedido) window.abrirChatDesdePedido(parseInt(btn.dataset.id), btn.dataset.nombre);
+                else mostrarModal('💬', 'Chat', 'El chat no está disponible.', true);
             });
         });
     }
@@ -567,7 +741,6 @@ function mostrarModalCompletar(idPedido) {
         try {
             const response = await fetch(`/pedidos/usuario/${usuario.id}`);
             allCompras = await response.json();
-            console.log('COMPRAS:', allCompras);
             return allCompras;
         } catch (err) {
             console.error("Error al cargar compras:", err);
@@ -582,14 +755,12 @@ function mostrarModalCompletar(idPedido) {
         subfilterRow.innerHTML = `
             <span class="chip-filter ${currentComprasFilter === 'all' ? 'active' : ''}" data-filter="all">Todos</span>
             ${categorias.map(cat => `
-                <span class="chip-filter ${currentComprasFilter === cat.ID_Categoria ? 'active' : ''}" 
-                      data-filter="${cat.ID_Categoria}">${cat.Nombre}</span>
+                <span class="chip-filter ${currentComprasFilter === cat.ID_Categoria ? 'active' : ''}" data-filter="${cat.ID_Categoria}">${cat.Nombre}</span>
             `).join('')}
         `;
         document.querySelectorAll('#subfilterRow .chip-filter').forEach(chip => {
             chip.addEventListener('click', async () => {
-                const filterValue = chip.dataset.filter;
-                currentComprasFilter = filterValue === 'all' ? 'all' : parseInt(filterValue);
+                currentComprasFilter = chip.dataset.filter === 'all' ? 'all' : parseInt(chip.dataset.filter);
                 await renderizarFiltrosCategoriasCompras();
                 await renderizarCompras();
             });
@@ -600,18 +771,11 @@ function mostrarModalCompletar(idPedido) {
         await cargarCompras();
         grid.className = 'pedidos-container';
 
-        if (allCompras.length === 0) {
-            grid.innerHTML = '<div class="empty-message">✨ No has realizado compras aún. ✨</div>';
-            return;
-        }
+        if (allCompras.length === 0) { grid.innerHTML = '<div class="empty-message">✨ No has realizado compras aún. ✨</div>'; return; }
 
         let filtered = [...allCompras];
-        if (currentComprasFilter !== 'all') {
-            filtered = filtered.filter(compra => compra.ID_Categoria == currentComprasFilter);
-        }
-        if (currentComprasSort === 'date') {
-            filtered.sort((a, b) => new Date(b.Fecha_Pedido) - new Date(a.Fecha_Pedido));
-        }
+        if (currentComprasFilter !== 'all') filtered = filtered.filter(c => c.ID_Categoria == currentComprasFilter);
+        if (currentComprasSort === 'date') filtered.sort((a, b) => new Date(b.Fecha_Pedido) - new Date(a.Fecha_Pedido));
 
         grid.innerHTML = filtered.map(pedido => {
             const estadoClass = obtenerClaseEstado(pedido.Estado);
@@ -630,38 +794,25 @@ function mostrarModalCompletar(idPedido) {
                             </div>
                             <span class="pedido-estado ${estadoClass}">${pedido.Estado}</span>
                         </div>
-                        ${pedido.Personalizacion ? `
-                            <div class="pedido-personalizacion">
-                                <strong>Personalización:</strong> ${pedido.Personalizacion}
-                            </div>
-                        ` : ''}
+                        ${pedido.Personalizacion ? `<div class="pedido-personalizacion"><strong>Personalización:</strong> ${pedido.Personalizacion}</div>` : ''}
                         <div class="pedido-footer">
                             <span class="pedido-precio">$${parseFloat(pedido.Total).toFixed(2)} USD</span>
                             <span class="pedido-fecha">${new Date(pedido.Fecha_Pedido).toLocaleDateString()}</span>
                         </div>
                         <div class="pedido-acciones">
-                            <button class="btn-chat-pedido" data-id="${pedido.ID_Pedido}" data-nombre="${pedido.ArtistaNombre || 'Artista'}">
-                                💬 Chat
-                            </button>
-                            ${pedido.Estado === 'Completado' ?
-                                `<button class="btn-reseñar" data-id="${pedido.ID_Pedido}" data-artista="${pedido.ID_Artista || ''}">⭐ Dejar reseña</button>` : ''}
+                            <button class="btn-chat-pedido" data-id="${pedido.ID_Pedido}" data-nombre="${pedido.ArtistaNombre || 'Artista'}">💬 Chat</button>
+                            ${pedido.Estado === 'Completado' ? `<button class="btn-reseñar" data-id="${pedido.ID_Pedido}" data-artista="${pedido.ID_Artista || ''}">⭐ Dejar reseña</button>` : ''}
                         </div>
                     </div>
                 </div>
             `;
         }).join('');
 
-        document.querySelectorAll('.btn-reseñar').forEach(btn => {
-    btn.addEventListener('click', () => mostrarModalResena(btn.dataset.id, btn.dataset.artista));
-});
-        // Chat en compras
+        document.querySelectorAll('.btn-reseñar').forEach(btn => btn.addEventListener('click', () => mostrarModalResena(btn.dataset.id, btn.dataset.artista)));
         document.querySelectorAll('.btn-chat-pedido').forEach(btn => {
             btn.addEventListener('click', () => {
-                if (window.abrirChatDesdePedido) {
-                    window.abrirChatDesdePedido(parseInt(btn.dataset.id), btn.dataset.nombre);
-                } else {
-                    mostrarModal('💬', 'Chat', 'El chat no está disponible en esta página.', true);
-                }
+                if (window.abrirChatDesdePedido) window.abrirChatDesdePedido(parseInt(btn.dataset.id), btn.dataset.nombre);
+                else mostrarModal('💬', 'Chat', 'El chat no está disponible.', true);
             });
         });
     }
@@ -670,241 +821,98 @@ function mostrarModalCompletar(idPedido) {
     // ACTUALIZAR ESTADO DE PEDIDO
     // ============================================
     async function actualizarEstadoPedido(id, nuevoEstado, origen) {
-    try {
-        let url = `/pedidos/${id}/estado`;
-        let body = { nuevoEstado };
+        try {
+            let url = `/pedidos/${id}/estado`;
+            let body = { nuevoEstado };
 
-        if (nuevoEstado === 'rechazar') {
-            url = `/pedidos/${id}/rechazar`;
-            body = {};
-        } else if (nuevoEstado === 'aprobado') {
-            url = `/pedidos/${id}/aprobar`;
-            body = {};
-        } else if (nuevoEstado === 'pagar') {
-            url = `/pedidos/${id}/pagar`;
-            body = {};
+            if (nuevoEstado === 'rechazar') { url = `/pedidos/${id}/rechazar`; body = {}; }
+            else if (nuevoEstado === 'aprobado') { url = `/pedidos/${id}/aprobar`; body = {}; }
+            else if (nuevoEstado === 'pagar') { url = `/pedidos/${id}/pagar`; body = {}; }
+
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                const usuario = JSON.parse(sessionStorage.getItem('usuario'));
+
+                // Mensajes automáticos al chat
+                const mensajes = {
+                    'aprobado':   '✅ El artista ha aceptado tu comisión. Pronto iniciará el trabajo.',
+                    'rechazar':   '❌ El artista ha rechazado la comisión.',
+                    'En proceso': '🎨 El artista ha iniciado el trabajo en tu comisión.',
+                };
+
+                if (mensajes[nuevoEstado]) {
+                    await fetch('/chat/mensaje', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id_pedido: id, id_emisor: usuario.id, contenido: mensajes[nuevoEstado] })
+                    });
+                }
+
+                let mensaje = data.msg || 'Estado actualizado';
+                let icono = '✅', titulo = '¡Éxito!';
+                switch (nuevoEstado) {
+                    case 'aprobado': mensaje = 'Pedido aprobado correctamente'; break;
+                    case 'rechazar': mensaje = 'Pedido rechazado'; icono = '❌'; titulo = 'Pedido Rechazado'; break;
+                    case 'En proceso': mensaje = 'Has iniciado el trabajo en este pedido'; break;
+                }
+
+                mostrarModal(icono, titulo, mensaje);
+                if (origen === 'ventas') setTimeout(() => renderizarVentas(), 800);
+            } else {
+                mostrarModal('⚠️', 'Error', data.msg || 'No se pudo actualizar el estado', true);
+            }
+        } catch (err) {
+            console.error("Error:", err);
+            mostrarModal('⚠️', 'Error de conexión', 'No se pudo conectar con el servidor', true);
         }
-
-        const response = await fetch(url, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            const usuario = JSON.parse(sessionStorage.getItem('usuario'));
-
-            // Mensaje automático según el nuevo estado
-            const mensajes = {
-                'aprobado':    '✅ El artista ha aceptado tu comisión. Pronto iniciará el trabajo.',
-                'rechazar':    '❌ El artista ha rechazado la comisión.',
-                'En proceso':  '🎨 El artista ha iniciado el trabajo en tu comisión.',
-                'Completado':  '🎉 ¡El artista ha marcado la comisión como completada! Puedes dejar una reseña.',
-            };
-
-            if (mensajes[nuevoEstado]) {
-                await fetch('/chat/mensaje', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id_pedido: id,
-                        id_emisor: usuario.id,
-                        contenido: mensajes[nuevoEstado]
-                    })
-                });
-            }
-
-            let mensaje = '';
-            let icono = '✅';
-            let titulo = '¡Éxito!';
-
-            switch(nuevoEstado) {
-                case 'aprobado': mensaje = 'Pedido aprobado correctamente'; break;
-                case 'rechazar': mensaje = 'Pedido rechazado'; icono = '❌'; titulo = 'Pedido Rechazado'; break;
-                case 'En proceso': mensaje = 'Has iniciado el trabajo en este pedido'; break;
-                case 'Completado': mensaje = '¡Pedido completado! El cliente podrá dejar una reseña'; icono = '🎉'; break;
-                default: mensaje = data.msg || 'Estado actualizado correctamente';
-            }
-
-            mostrarModal(icono, titulo, mensaje);
-
-            if (origen === 'ventas') {
-                setTimeout(() => renderizarVentas(), 800);
-            }
-        } else {
-            mostrarModal('⚠️', 'Error', data.msg || 'No se pudo actualizar el estado', true);
-        }
-    } catch (err) {
-        console.error("Error:", err);
-        mostrarModal('⚠️', 'Error de conexión', 'No se pudo conectar con el servidor', true);
     }
-}
-
-function mostrarModalResena(idPedido, idArtista) {
-    let modal = document.getElementById('modalResena');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'modalResena';
-        modal.className = 'modal-mensaje-overlay';
-        modal.innerHTML = `
-            <div class="modal-mensaje-box" style="max-width:420px">
-                <div class="modal-mensaje-icon">⭐</div>
-                <h3 class="modal-mensaje-titulo">Dejar reseña</h3>
-                <p class="modal-mensaje-texto">¿Cómo fue tu experiencia con este artista?</p>
-                <div id="estrellas-input" style="display:flex;gap:8px;justify-content:center;margin:16px 0;font-size:32px;cursor:pointer">
-                    <span class="estrella" data-val="1">☆</span>
-                    <span class="estrella" data-val="2">☆</span>
-                    <span class="estrella" data-val="3">☆</span>
-                    <span class="estrella" data-val="4">☆</span>
-                    <span class="estrella" data-val="5">☆</span>
-                </div>
-                <input type="hidden" id="puntuacion-val" value="0">
-                <textarea id="comentario-resena" placeholder="Cuéntanos sobre tu experiencia (opcional)..."
-                    style="width:100%;background:#2a1040;border:1px solid #ffffff15;border-radius:10px;
-                    padding:10px;color:white;font-family:'DM Sans',sans-serif;font-size:13px;
-                    resize:vertical;min-height:80px;margin-bottom:14px;box-sizing:border-box"></textarea>
-                <div style="display:flex;gap:10px;justify-content:center">
-                    <button id="btnCancelarResena" class="modal-mensaje-boton" style="background:#333;color:white">Cancelar</button>
-                    <button id="btnEnviarResena" class="modal-mensaje-boton">Publicar reseña</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
-
-    // Reset
-    modal.classList.add('show');
-    document.getElementById('puntuacion-val').value = '0';
-    document.getElementById('comentario-resena').value = '';
-    document.querySelectorAll('.estrella').forEach(e => e.textContent = '☆');
-
-    // Estrellas interactivas
-    const estrellas = document.querySelectorAll('.estrella');
-    estrellas.forEach(estrella => {
-        estrella.onmouseover = () => {
-            estrellas.forEach(e => e.textContent = e.dataset.val <= estrella.dataset.val ? '★' : '☆');
-        };
-        estrella.onmouseout = () => {
-            const val = document.getElementById('puntuacion-val').value;
-            estrellas.forEach(e => e.textContent = e.dataset.val <= val ? '★' : '☆');
-        };
-        estrella.onclick = () => {
-            document.getElementById('puntuacion-val').value = estrella.dataset.val;
-            estrellas.forEach(e => e.textContent = e.dataset.val <= estrella.dataset.val ? '★' : '☆');
-        };
-    });
-
-    document.getElementById('btnCancelarResena').onclick = () => modal.classList.remove('show');
-
-    document.getElementById('btnEnviarResena').onclick = async () => {
-        const puntuacion = parseInt(document.getElementById('puntuacion-val').value);
-        if (!puntuacion) {
-            mostrarModal('⚠️', 'Selecciona estrellas', 'Por favor selecciona una puntuación.', true);
-            return;
-        }
-        const usuario = JSON.parse(sessionStorage.getItem('usuario'));
-        const comentario = document.getElementById('comentario-resena').value.trim();
-
-        const res = await fetch('/resenas/crear', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                id_pedido: idPedido,
-                id_usuario: usuario.id,
-                id_artista: idArtista,
-                puntuacion,
-                comentario
-            })
-        });
-
-        const data = await res.json();
-        modal.classList.remove('show');
-
-        if (res.ok) {
-            mostrarModal('🌸', '¡Gracias!', 'Tu reseña fue publicada correctamente.');
-        } else {
-            mostrarModal('⚠️', 'Error', data.msg, true);
-        }
-    };
-
-    modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('show'); };
-}
-
 
     // ============================================
-    // CHIPS PRINCIPALES
+    // CHIPS Y TABS
     // ============================================
     function handleMainChipClick() {
         const filter = this.dataset.filter;
+        mainChips.forEach(chip => chip.classList.remove('active'));
+        this.classList.add('active');
 
         if (currentTab === 'publications') {
-            mainChips.forEach(chip => chip.classList.remove('active'));
-            this.classList.add('active');
             if (filter === 'date') {
-                if (currentPublicationsSort === 'date') {
-                    publicationsSortOrder = publicationsSortOrder === 'desc' ? 'asc' : 'desc';
-                } else {
-                    currentPublicationsSort = 'date';
-                    publicationsSortOrder = 'desc';
-                }
-                currentPublicationsFilter = 'all';
-                subfilterRow.style.display = 'flex';
-                buildSubfilterChipsPublications();
-                renderPublications();
+                if (currentPublicationsSort === 'date') publicationsSortOrder = publicationsSortOrder === 'desc' ? 'asc' : 'desc';
+                else { currentPublicationsSort = 'date'; publicationsSortOrder = 'desc'; }
+                buildSubfilterChipsPublications(); renderPublications();
             } else if (filter === 'categories') {
-                currentPublicationsSort = null;
-                currentPublicationsFilter = 'all';
-                subfilterRow.style.display = 'flex';
-                buildSubfilterChipsPublications();
-                renderPublications();
+                currentPublicationsSort = null; currentPublicationsFilter = 'all';
+                buildSubfilterChipsPublications(); renderPublications();
             } else if (filter === 'likes') {
                 currentPublicationsSort = 'likes';
-                currentPublicationsFilter = 'all';
-                subfilterRow.style.display = 'flex';
-                buildSubfilterChipsPublications();
-                renderPublications();
+                buildSubfilterChipsPublications(); renderPublications();
             }
         } else if (currentTab === 'sells') {
-            mainChips.forEach(chip => chip.classList.remove('active'));
-            this.classList.add('active');
-            if (filter === 'date') {
-                currentVentasSort = currentVentasSort === 'date' ? null : 'date';
-                subfilterRow.style.display = 'flex';
-                renderizarFiltrosCategoriasVentas();
-                renderizarVentas();
-            } else if (filter === 'categories') {
-                currentVentasSort = null;
-                currentVentasFilter = 'all';
-                subfilterRow.style.display = 'flex';
-                renderizarFiltrosCategoriasVentas();
-                renderizarVentas();
-            }
+            if (filter === 'date') { currentVentasSort = currentVentasSort === 'date' ? null : 'date'; }
+            else if (filter === 'categories') { currentVentasSort = null; currentVentasFilter = 'all'; }
+            renderizarFiltrosCategoriasVentas(); renderizarVentas();
         } else if (currentTab === 'basket') {
-            mainChips.forEach(chip => chip.classList.remove('active'));
-            this.classList.add('active');
-            if (filter === 'date') {
-                currentComprasSort = currentComprasSort === 'date' ? null : 'date';
-                subfilterRow.style.display = 'flex';
-                renderizarFiltrosCategoriasCompras();
-                renderizarCompras();
-            } else if (filter === 'categories') {
-                currentComprasSort = null;
-                currentComprasFilter = 'all';
-                subfilterRow.style.display = 'flex';
-                renderizarFiltrosCategoriasCompras();
-                renderizarCompras();
-            }
+            if (filter === 'date') { currentComprasSort = currentComprasSort === 'date' ? null : 'date'; }
+            else if (filter === 'categories') { currentComprasSort = null; currentComprasFilter = 'all'; }
+            renderizarFiltrosCategoriasCompras(); renderizarCompras();
         }
     }
 
-    // ============================================
-    // TABS
-    // ============================================
     async function setActiveTab(tab) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
+
+        // Ocultar dashboards por defecto
+        if (sellsDashboard) sellsDashboard.style.display = 'none';
+        if (basketDashboard) basketDashboard.style.display = 'none';
+        grid.style.display = '';
 
         if (tab === tabPub) {
             currentTab = 'publications';
@@ -912,27 +920,20 @@ function mostrarModalResena(idPedido, idArtista) {
             await cargarPublicaciones();
         } else if (tab === tabSells) {
             currentTab = 'sells';
-            currentVentasSort = null;
-            currentVentasFilter = 'all';
+            currentVentasSort = null; currentVentasFilter = 'all';
             subfilterRow.style.display = 'flex';
             await renderizarFiltrosCategoriasVentas();
             await renderizarVentas();
         } else if (tab === tabBasket) {
             currentTab = 'basket';
-            currentComprasSort = null;
-            currentComprasFilter = 'all';
+            currentComprasSort = null; currentComprasFilter = 'all';
             subfilterRow.style.display = 'flex';
             await renderizarFiltrosCategoriasCompras();
             await renderizarCompras();
         }
     }
 
-    // ── Inicialización ──
-    mainChips.forEach(chip => {
-        chip.removeEventListener('click', handleMainChipClick);
-        chip.addEventListener('click', handleMainChipClick);
-    });
-
+    mainChips.forEach(chip => chip.addEventListener('click', handleMainChipClick));
     tabPub.addEventListener('click', () => setActiveTab(tabPub));
     tabSells.addEventListener('click', () => setActiveTab(tabSells));
     tabBasket.addEventListener('click', () => setActiveTab(tabBasket));

@@ -1,17 +1,23 @@
-// ============================================
-// NAVBAR
-// ============================================
 function actualizarNavbar() {
-    const usuario = sessionStorage.getItem('usuario');
-    const navLinks = document.querySelector('.nav-links');
-    if (usuario) {
-        navLinks.innerHTML = `
-            <a href="/landing">Explora</a>
-            <a href="/landing#categorias">Categorías</a>
-            <a href="/basket">Canasta</a>
-            <a href="/mi-perfil">Perfil</a>
-        `;
-    }
+  const usuario = sessionStorage.getItem('usuario');
+  const navLinks = document.querySelector('.nav-links');
+
+  if (usuario) {
+    navLinks.innerHTML = `
+      <a href="/landing">Explora</a>
+      <a href="/landing#categorias">Categorías</a>
+      <a href="/basket">Canasta</a>
+      <a href="/mi-perfil">Perfil</a>
+      <span class="nav-logout" onclick="cerrarSesion()" title="Cerrar sesión">
+        <span class="material-symbols-outlined">logout</span>
+      </span>
+    `;
+  }
+}
+
+function cerrarSesion() {
+    sessionStorage.removeItem('usuario');
+    window.location.href = '/login';
 }
 actualizarNavbar();
 
