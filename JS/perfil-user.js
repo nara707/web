@@ -1,5 +1,3 @@
-//Funcion para actualizar el navbar
-actualizarNavbar();// Navbar dinámico
 function actualizarNavbar() {
   const usuario = sessionStorage.getItem('usuario');
   const navLinks = document.querySelector('.nav-links');
@@ -10,8 +8,16 @@ function actualizarNavbar() {
       <a href="/landing#categorias">Categorías</a>
       <a href="/basket">Canasta</a>
       <a href="/mi-perfil">Perfil</a>
-    `;  
+      <span class="nav-logout" onclick="cerrarSesion()" title="Cerrar sesión">
+        <span class="material-symbols-outlined">logout</span>
+      </span>
+    `;
   }
+}
+
+function cerrarSesion() {
+    sessionStorage.removeItem('usuario');
+    window.location.href = '/login';
 }
 
 async function cargarPerfilUsuario() {
@@ -38,6 +44,29 @@ async function cargarPerfilUsuario() {
         // Descripción en sidebar
         const descEl = document.querySelector('.description-text');
         if (descEl && data.biografia) descEl.textContent = `"${data.biografia}"`;
+
+
+// Cargar reseñas del artista
+const resRes = await fetch(`/resenas/artista/${id}`);
+const resenas = await resRes.json();
+
+if (resenas.length) {
+    const sidebar = document.querySelector('.filter-card');
+    const div = document.createElement('div');
+    div.className = 'filter-section';
+    const promedio = (resenas.reduce((s, r) => s + r.Puntuacion, 0) / resenas.length).toFixed(1);
+    div.innerHTML = `
+        <h4>Reseñas <span style="color:#e8d87a">${'★'.repeat(Math.round(promedio))} ${promedio}</span></h4>
+        ${resenas.slice(0, 3).map(r => `
+            <div style="margin-bottom:12px;font-size:12px;border-top:1px solid #ffffff10;padding-top:10px">
+                <div style="font-weight:700">${r.NombreCliente}</div>
+                <div style="color:#e8d87a">${'★'.repeat(r.Puntuacion)}${'☆'.repeat(5 - r.Puntuacion)}</div>
+                ${r.Comentario ? `<p style="color:#ccc;margin:4px 0 0">${r.Comentario}</p>` : ''}
+            </div>
+        `).join('')}
+    `;
+    sidebar.appendChild(div);
+}
 
     } catch (err) {
         console.error('Error cargando perfil:', err);

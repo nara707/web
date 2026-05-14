@@ -8,9 +8,13 @@ function actualizarNavbar() {
       <a href="/landing#categorias">Categorías</a>
       <a href="/basket">Canasta</a>
       <a href="/mi-perfil">Perfil</a>
+      <span class="nav-logout" onclick="cerrarSesion()" title="Cerrar sesión">
+        <span class="material-symbols-outlined">logout</span>
+      </span>
     `;
     }
 }
+
 actualizarNavbar();
 
 let modoEdicion = false;
@@ -19,26 +23,21 @@ let nuevaFotoBase64 = null; // guarda la foto nueva si se cambió
 
 async function cargarPerfil() {
     const usuario = JSON.parse(sessionStorage.getItem('usuario'));
-    if (!usuario) { window.location.href = '/login'; return; }
+
+    if (!usuario) {
+        window.location.href = '/login';
+        return;
+    }
 
     try {
         const res = await fetch(`/api/perfil?correo=${encodeURIComponent(usuario.correo)}`);
         const data = await res.json();
 
-        // Nombre
-        const labelNombre = document.getElementById('label-nombre');
-        const nameInput = document.getElementById('nameInput');
-        if (labelNombre) labelNombre.textContent = data.nombre || usuario.nombre;
-        if (nameInput) nameInput.value = data.nombre || usuario.nombre;
+        // Nombre en el sidebar
+        const nombreEl = document.querySelector('.filter-card .filter-section h4');
+        if (nombreEl) nombreEl.textContent = data.nombre;
 
-        // Descripción
-        const descDisplay = document.getElementById('desc-display');
-        const descInput = document.getElementById('descriptionInput');
-        const desc = usuario.descripcion || data.biografia || '';
-        if (descDisplay) descDisplay.textContent = desc;
-        if (descInput) descInput.value = desc;
-
-        // Avatar
+        // Foto en el banner
         const avatar = document.querySelector('.large-avatar');
         const foto = data.foto || usuario.foto;
         if (avatar && foto) {
@@ -47,210 +46,17 @@ async function cargarPerfil() {
             avatar.style.backgroundPosition = 'center';
         }
 
-        // Tags
-        try {
-            const resTags = await fetch(`/api/tags/${usuario.id}`);
-            tagsActuales = (await resTags.json()).map(t => t.Nombre);
-        } catch {
-            tagsActuales = [];
-        }
-        renderTags();
-
     } catch (err) {
         console.error('Error cargando perfil:', err);
     }
 }
 
-function renderTags() {
-    const group = document.getElementById('tag-group');
-    if (!group) return;
-    group.innerHTML = '';
-    tagsActuales.forEach((tag, i) => {
-        const span = document.createElement('span');
-        span.className = 'filter-tag';
-        span.innerHTML = tag + (modoEdicion
-            ? `<button class="tag-remove" onclick="eliminarTag(${i})">×</button>`
-            : '');
-        group.appendChild(span);
-    });
-}
-
-function eliminarTag(index) {
-    tagsActuales.splice(index, 1);
-    renderTags();
-}
-
-function agregarTag() {
-    const input = document.getElementById('tagInput');
-    const valor = input.value.trim();
-    if (!valor) return;
-    if (tagsActuales.includes(valor)) { input.value = ''; return; }
-    if (tagsActuales.length >= 8) return;
-    tagsActuales.push(valor);
-    input.value = '';
-    renderTags();
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('tagInput')?.addEventListener('keydown', e => {
-        if (e.key === 'Enter') { e.preventDefault(); agregarTag(); }
-    });
-});
-
-function previewFoto(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        nuevaFotoBase64 = e.target.result; // guarda para enviar
-        const avatar = document.querySelector('.large-avatar');
-        if (avatar) {
-            avatar.style.backgroundImage = `url('${nuevaFotoBase64}')`;
-            avatar.style.backgroundSize = 'cover';
-            avatar.style.backgroundPosition = 'center';
-        }
-    };
-    reader.readAsDataURL(file);
-}
-
-function toggleEditar() {
-    modoEdicion = !modoEdicion;
-    const btn = document.getElementById('boton-editar');
-    const labelNombre = document.getElementById('label-nombre');
-    const nameInput = document.getElementById('nameInput');
-    const descDisplay = document.getElementById('desc-display');
-    const descInput = document.getElementById('descriptionInput');
-    const tagAddRow = document.getElementById('tag-add-row');
-    const btnFoto = document.getElementById('btn-cambiar-foto');
-
-    if (modoEdicion) {
-        // Entrar a modo edición
-        labelNombre.classList.add('edit-field-hidden');
-        nameInput.classList.remove('edit-field-hidden');
-
-        descDisplay.classList.add('edit-field-hidden');
-        descInput.classList.remove('edit-field-hidden');
-
-        tagAddRow.classList.remove('edit-field-hidden');
-        btnFoto.classList.remove('edit-field-hidden');
-
-        btn.textContent = 'Guardar cambios';
-
-    } else {
-        // Salir de modo edición — validar y guardar
-        const nuevoNombre = nameInput.value.trim();
-        const nuevaDesc = descInput.value.trim();
-
-        if (!nuevoNombre) {
-            nameInput.style.border = '1.5px solid #e87a7a';
-            nameInput.focus();
-            modoEdicion = true; // no salir
-            return;
-        }
-        nameInput.style.border = '';
-
-        labelNombre.classList.remove('edit-field-hidden');
-        nameInput.classList.add('edit-field-hidden');
-
-        descDisplay.classList.remove('edit-field-hidden');
-        descInput.classList.add('edit-field-hidden');
-
-        tagAddRow.classList.add('edit-field-hidden');
-        btnFoto.classList.add('edit-field-hidden');
-
-        btn.textContent = 'Editar perfil';
-
-        guardarCambios(nuevoNombre, nuevaDesc);
-    }
-
-    renderTags();
-}
-
-async function guardarCambios(nuevoNombre, nuevaDesc) {
-    const usuario = JSON.parse(sessionStorage.getItem('usuario'));
-    if (!usuario) return;
-
-    const promesas = [];
-
-    // Siempre guarda nombre y bio 
-    promesas.push(
-        fetch(`/api/perfil/${usuario.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre: nuevoNombre, biografia: nuevaDesc })
-        })
-    );
-
-    // Tags
-    promesas.push(
-        fetch(`/api/tags/${usuario.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tags: tagsActuales })
-        })
-    );
-
-    // Foto — solo si se cambió
-    if (nuevaFotoBase64) {
-        promesas.push(
-            fetch(`/api/perfil/${usuario.id}/foto`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ foto: nuevaFotoBase64 })
-            })
-        );
-    }
-
-    try {
-        await Promise.all(promesas);
-
-        // Actualizar sessionStorage
-        usuario.nombre = nuevoNombre;
-        usuario.descripcion = nuevaDesc;
-        if (nuevaFotoBase64) usuario.foto = nuevaFotoBase64;
-        sessionStorage.setItem('usuario', JSON.stringify(usuario));
-        nuevaFotoBase64 = null;
-
-        // Actualizar UI de lectura
-        document.getElementById('label-nombre').textContent = nuevoNombre;
-        const descDisplay = document.getElementById('desc-display');
-        if (descDisplay) descDisplay.textContent = nuevaDesc;
-
-        await Swal.fire({
-            icon: 'success',
-            title: 'Cambios guardados',
-            text: 'Tu perfil se actualizó con éxito.',
-            timer: 2500,
-            timerProgressBar: true,
-            showConfirmButton: false,
-            color: '#3a0a5a',
-            iconColor: '#b05ad0',
-            confirmButtonColor: '#b05ad0'
-        });
-
-
-    } catch (err) {
-        console.error('Error al guardar:', err);
-        await Swal.fire({
-            icon: 'error',
-            title: 'Error al guardar',
-            text: 'Ocurrió un error al guardar los cambios. Por favor, intenta de nuevo.',
-            timer: 2500,
-            timerProgressBar: true,
-            showConfirmButton: false,
-            color: '#3a0a5a',
-            iconColor: '#b05ad0',
-            confirmButtonColor: '#b05ad0'
-        });
-
-    }
-}
-
-
 cargarPerfil();
 
 
+// ============================================
+// INICIO DEL IIFE
+// ============================================
 (function () {
     // ============================================
     // ESTRELLAS
@@ -262,11 +68,17 @@ cargarPerfil();
     const sh = [s => `<polygon points="${s4(s)}" fill="${rc()}" opacity=".6"/>`, s => `<polygon points="${s6(s)}" fill="${rc()}" opacity=".55"/>`, s => `<polygon points="0,${-s} ${s * .4},0 0,${s} ${-s * .4},0" fill="${rc()}" opacity=".7"/>`];
     [{ size: 10, left: 4, dur: '10s', delay: '0s' }, { size: 14, left: 14, dur: '13s', delay: '2s' }, { size: 8, left: 24, dur: '9s', delay: '5s' }, { size: 16, left: 36, dur: '12s', delay: '1s' }, { size: 10, left: 50, dur: '8s', delay: '3.5s' }, { size: 18, left: 62, dur: '15s', delay: '0.5s' }, { size: 11, left: 74, dur: '11s', delay: '7s' }, { size: 9, left: 85, dur: '9s', delay: '2.5s' }, { size: 13, left: 94, dur: '12s', delay: '4s' }].forEach(d => { const sv = sh[Math.floor(Math.random() * sh.length)]; const svg = `<svg viewBox="${-d.size} ${-d.size} ${d.size * 2} ${d.size * 2}" width="${d.size * 2}" height="${d.size * 2}">${sv(d.size)}</svg>`; const el = document.createElement('div'); el.className = 'star'; el.style.cssText = `left:${d.left}%;bottom:-${d.size * 2}px;--dur:${d.dur};--delay:${d.delay}`; el.innerHTML = svg; document.body.appendChild(el); });
 
-    // ============================================
-    // ELEMENTOS DOM
-    // ============================================
+    // ----- ESTADO -----
     const grid = document.getElementById('cardsGrid');
+    let allCards = [];
+    let categoriasFiltro = [];   // se llenan dinámicamente desde la BD
+    let currentFilter = 'all';
+    let currentMainFilter = 'categories';
+    let currentSort = null;
+    let sortOrder = 'desc';
+    let currentTab = 'publications';
 
+    // ----- ELEMENTOS DOM -----
     const mainChips = document.querySelectorAll('#filterChipsRow .chip-filter');
     const subfilterRow = document.getElementById('subfilterRow');
 
@@ -274,111 +86,15 @@ cargarPerfil();
     const tabSells = document.getElementById('tab-sells');
     const tabBasket = document.getElementById('tab-basket');
 
-
-    //----SECCIONES DE PERFIL-----
-    const sellsDashboard  = document.getElementById('sells-dashboard');
-    const basketDashboard = document.getElementById('basket-dashboard');
-
-    // Elementos del modal
-    const modalMensaje = document.getElementById('modalMensaje');
-    const modalIcon = document.getElementById('modalIcon');
-    const modalTitulo = document.getElementById('modalTitulo');
-    const modalTexto = document.getElementById('modalTexto');
-    const modalCerrarBtn = document.getElementById('modalCerrarBtn');
-
-    // ============================================
-    // FUNCIONES DEL MODAL
-    // ============================================
-    function mostrarModal(icono, titulo, texto, esError = false) {
-
-        modalIcon.innerHTML = icono;
-        modalTitulo.textContent = titulo;
-        modalTexto.textContent = texto;
-
-        if (esError) {
-            modalCerrarBtn.style.background = 'linear-gradient(90deg, #d07070, #b05050)';
-            modalCerrarBtn.style.color = 'white';
-        } else {
-            modalCerrarBtn.style.background = 'linear-gradient(90deg, #e8d87a, #f0e89a)';
-            modalCerrarBtn.style.color = '#7a6010';
-        }
-
-        modalMensaje.classList.add('show');
-        console.log("✅ Modal debería estar visible ahora");
-    }
-    function cerrarModal() {
-        if (modalMensaje) {
-            modalMensaje.classList.remove('show');
-        }
+    // ----- PARSEAR LIKES -----
+    function parseLikes(likesStr) {
+        if (!likesStr) return 0;
+        const num = parseFloat(String(likesStr).replace('k', ''));
+        return String(likesStr).includes('k') ? num * 1000 : num;
     }
 
-    // Configurar eventos del modal
-    if (modalCerrarBtn) {
-        modalCerrarBtn.addEventListener('click', cerrarModal);
-    }
-    if (modalMensaje) {
-        modalMensaje.addEventListener('click', (e) => {
-            if (e.target === modalMensaje) cerrarModal();
-        });
-    }
-
-    // ============================================
-    // ESTADO GENERAL
-    // ============================================
-    let currentTab = 'publications';
-
-    // Estado para PUBLICACIONES
-    let allCards = [];
-    let categoriasFiltro = [];
-    let currentPublicationsFilter = 'all';
-    let currentPublicationsSort = null;
-    let publicationsSortOrder = 'desc';
-
-    // Estado para VENTAS
-    let allVentas = [];
-    let currentVentasFilter = 'all';
-    let currentVentasSort = null;
-
-    // Estado para COMPRAS
-    let allCompras = [];
-    let currentComprasFilter = 'all';
-    let currentComprasSort = null;
-
-    // Cache de categorías
-    let cachedCategorias = [];
-
-    // ============================================
-    // FUNCIONES AUXILIARES
-    // ============================================
-    function obtenerClaseEstado(estado) {
-        switch (estado) {
-            case 'pendiente': return 'estado-pendiente';
-            case 'aprobado': return 'estado-aprobado';
-            case 'En proceso': return 'estado-en-proceso';
-            case 'Revision': return 'estado-revision';
-            case 'Completado': return 'estado-completado';
-            case 'Cancelado': return 'estado-cancelado';
-            default: return 'estado-pendiente';
-        }
-    }
-
-    async function obtenerCategorias() {
-        if (cachedCategorias.length > 0) return cachedCategorias;
-        try {
-            const response = await fetch('/categorias');
-            cachedCategorias = await response.json();
-            return cachedCategorias;
-        } catch (err) {
-            console.error("Error al cargar categorías:", err);
-            return [];
-        }
-    }
-
-    // ============================================
-    // SECCIÓN 1: PUBLICACIONES
-    // ============================================
-    function buildSubfilterChipsPublications() {
-        if (!subfilterRow) return;
+    // ----- CONSTRUIR SUBFILTER CHIPS DINÁMICAMENTE -----
+    function buildSubfilterChips() {
         subfilterRow.innerHTML = '';
         subfilterRow.style.display = 'flex';
 
@@ -393,7 +109,6 @@ cargarPerfil();
         });
         subfilterRow.appendChild(todoChip);
 
-        // Un chip por cada categoría que tenga al menos una publicación
         categoriasFiltro.forEach(cat => {
             const chip = document.createElement('span');
             chip.className = 'chip-filter' + (currentPublicationsFilter === cat.id ? ' active' : '');
@@ -483,408 +198,50 @@ cargarPerfil();
                     </div>
                     <div class="art-card-price">${card.price}</div>
                     <button class="art-card-save material-symbols-outlined"
-                        onclick="this.classList.toggle('saved')">favorite</button>
+                        onclick="event.stopPropagation();this.classList.toggle('saved')">favorite</button>
                 </div>`;
         }).join('');
     }
 
-    // ============================================
-    // SECCIÓN 2: VENTAS
-    // ============================================
-    async function cargarVentas() {
-        const usuario = JSON.parse(sessionStorage.getItem('usuario'));
-        if (!usuario || !usuario.id) return [];
-
-        try {
-            const response = await fetch(`/pedidos/artista/${usuario.id}`);
-            allVentas = await response.json();
-            return allVentas;
-        } catch (err) {
-            console.error("Error al cargar ventas:", err);
-            allVentas = [];
-            return [];
-        }
+    // ----- MAIN CHIPS -----
+    function setActiveMainChip(filterValue) {
+        mainChips.forEach(chip => chip.classList.toggle('active', chip.dataset.filter === filterValue));
     }
 
-    async function renderizarFiltrosCategoriasVentas() {
-        if (!subfilterRow) return;
-        const categorias = await obtenerCategorias();
+    mainChips.forEach(chip => {
+        chip.addEventListener('click', function () {
+            const filter = this.dataset.filter;
 
-        subfilterRow.innerHTML = `
-            <span class="chip-filter ${currentVentasFilter === 'all' ? 'active' : ''}" data-filter="all">Todos</span>
-            ${categorias.map(cat => `
-                <span class="chip-filter ${currentVentasFilter === cat.ID_Categoria ? 'active' : ''}" 
-                      data-filter="${cat.ID_Categoria}">
-                    ${cat.Nombre}
-                </span>
-            `).join('')}
-        `;
-
-        document.querySelectorAll('#subfilterRow .chip-filter').forEach(chip => {
-            chip.addEventListener('click', async () => {
-                const filterValue = chip.dataset.filter;
-                currentVentasFilter = filterValue === 'all' ? 'all' : parseInt(filterValue);
-                await renderizarFiltrosCategoriasVentas();
-                await renderizarVentas();
-            });
-        });
-    }
-
-    async function renderizarVentas() {
-        await cargarVentas();
-
-        grid.className = 'pedidos-container';
-
-        if (allVentas.length === 0) {
-            grid.innerHTML = '<div class="empty-message">✨ No tienes ventas aún. ✨</div>';
-            return;
-        }
-
-        let filtered = [...allVentas];
-
-        if (currentVentasFilter !== 'all') {
-            filtered = filtered.filter(venta => venta.ID_Categoria == currentVentasFilter);
-        }
-
-        if (currentVentasSort === 'date') {
-            filtered.sort((a, b) => new Date(b.Fecha_Pedido) - new Date(a.Fecha_Pedido));
-        }
-
-        grid.innerHTML = filtered.map(venta => {
-            const estadoClass = obtenerClaseEstado(venta.Estado);
-            const imgHTML = venta.Portada
-                ? `<div class="pedido-imagen" style="background-image: url('data:image/jpeg;base64,${venta.Portada}');"></div>`
-                : `<div class="pedido-imagen placeholder">🎨</div>`;
-
-            return `
-                <div class="pedido-card">
-                    ${imgHTML}
-                    <div class="pedido-contenido">
-                        <div class="pedido-header">
-                            <div>
-                                <h3 class="pedido-cliente">${venta.ClienteNombre || 'Cliente'}</h3>
-                                <p class="pedido-publicacion">${venta.PublicacionTitulo || 'Comisión personalizada'}</p>
-                            </div>
-                            <span class="pedido-estado ${estadoClass}">${venta.Estado}</span>
-                        </div>
-                        ${venta.Personalizacion ? `
-                            <div class="pedido-personalizacion">
-                                <strong>Personalización:</strong> ${venta.Personalizacion}
-                            </div>
-                        ` : ''}
-                        <div class="pedido-footer">
-                            <span class="pedido-precio">$${parseFloat(venta.Total).toFixed(2)} USD</span>
-                            <span class="pedido-fecha">${new Date(venta.Fecha_Pedido).toLocaleDateString()}</span>
-                        </div>
-                        <div class="pedido-acciones">
-                            ${venta.Estado === 'pendiente' ? `
-                                <button class="btn-aprobar" data-id="${venta.ID_Pedido}">✓ Aprobar</button>
-                                <button class="btn-rechazar" data-id="${venta.ID_Pedido}">✗ Rechazar</button>
-                            ` : ''}
-                            ${venta.Estado === 'aprobado' ? `
-                                <button class="btn-iniciar" data-id="${venta.ID_Pedido}">▶ Iniciar trabajo</button>
-                            ` : ''}
-                            ${venta.Estado === 'En proceso' ? `
-                                <button class="btn-revision" data-id="${venta.ID_Pedido}">🔄 Enviar a revisión</button>
-                                <button class="btn-completar" data-id="${venta.ID_Pedido}">✅ Completar</button>
-                            ` : ''}
-                            ${venta.Estado === 'Revision' ? `
-                                <button class="btn-retomar" data-id="${venta.ID_Pedido}">✏️ Retomar trabajo</button>
-                                <button class="btn-completar" data-id="${venta.ID_Pedido}">✅ Completar</button>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        document.querySelectorAll('.btn-aprobar').forEach(btn => {
-            btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'aprobado', 'ventas'));
-        });
-        document.querySelectorAll('.btn-rechazar').forEach(btn => {
-            btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'rechazar', 'ventas'));
-        });
-        document.querySelectorAll('.btn-iniciar, .btn-retomar').forEach(btn => {
-            btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'En proceso', 'ventas'));
-        });
-        document.querySelectorAll('.btn-revision').forEach(btn => {
-            btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'Revision', 'ventas'));
-        });
-        document.querySelectorAll('.btn-completar').forEach(btn => {
-            btn.addEventListener('click', () => actualizarEstadoPedido(btn.dataset.id, 'Completado', 'ventas'));
-        });
-    }
-
-    // ============================================
-    // SECCIÓN 3: COMPRAS
-    // ============================================
-    async function cargarCompras() {
-        const usuario = JSON.parse(sessionStorage.getItem('usuario'));
-        if (!usuario || !usuario.id) return [];
-
-        try {
-            const response = await fetch(`/pedidos/usuario/${usuario.id}`);
-            allCompras = await response.json();
-            return allCompras;
-        } catch (err) {
-            console.error("Error al cargar compras:", err);
-            allCompras = [];
-            return [];
-        }
-    }
-
-    async function renderizarFiltrosCategoriasCompras() {
-        if (!subfilterRow) return;
-        const categorias = await obtenerCategorias();
-
-        subfilterRow.innerHTML = `
-            <span class="chip-filter ${currentComprasFilter === 'all' ? 'active' : ''}" data-filter="all">Todos</span>
-            ${categorias.map(cat => `
-                <span class="chip-filter ${currentComprasFilter === cat.ID_Categoria ? 'active' : ''}" 
-                      data-filter="${cat.ID_Categoria}">
-                    ${cat.Nombre}
-                </span>
-            `).join('')}
-        `;
-
-        document.querySelectorAll('#subfilterRow .chip-filter').forEach(chip => {
-            chip.addEventListener('click', async () => {
-                const filterValue = chip.dataset.filter;
-                currentComprasFilter = filterValue === 'all' ? 'all' : parseInt(filterValue);
-                await renderizarFiltrosCategoriasCompras();
-                await renderizarCompras();
-            });
-        });
-    }
-
-    async function renderizarCompras() {
-        await cargarCompras();
-
-        grid.className = 'pedidos-container';
-
-        if (allCompras.length === 0) {
-            grid.innerHTML = '<div class="empty-message">✨ No has realizado compras aún. ✨</div>';
-            return;
-        }
-
-        let filtered = [...allCompras];
-
-        if (currentComprasFilter !== 'all') {
-            filtered = filtered.filter(compra => compra.ID_Categoria == currentComprasFilter);
-        }
-
-        if (currentComprasSort === 'date') {
-            filtered.sort((a, b) => new Date(b.Fecha_Pedido) - new Date(a.Fecha_Pedido));
-        }
-
-        grid.innerHTML = filtered.map(pedido => {
-            const estadoClass = obtenerClaseEstado(pedido.Estado);
-            const imgHTML = pedido.Portada
-                ? `<div class="pedido-imagen" style="background-image: url('data:image/jpeg;base64,${pedido.Portada}');"></div>`
-                : `<div class="pedido-imagen placeholder">🎨</div>`;
-
-            return `
-                <div class="pedido-card">
-                    ${imgHTML}
-                    <div class="pedido-contenido">
-                        <div class="pedido-header">
-                            <div>
-                                <h3 class="pedido-artista">${pedido.ArtistaNombre || 'Artista'}</h3>
-                                <p class="pedido-publicacion">${pedido.PublicacionTitulo || 'Comisión personalizada'}</p>
-                            </div>
-                            <span class="pedido-estado ${estadoClass}">${pedido.Estado}</span>
-                        </div>
-                        ${pedido.Personalizacion ? `
-                            <div class="pedido-personalizacion">
-                                <strong>Personalización:</strong> ${pedido.Personalizacion}
-                            </div>
-                        ` : ''}
-                        <div class="pedido-footer">
-                            <span class="pedido-precio">$${parseFloat(pedido.Total).toFixed(2)} USD</span>
-                            <span class="pedido-fecha">${new Date(pedido.Fecha_Pedido).toLocaleDateString()}</span>
-                        </div>
-                        <div class="pedido-acciones">
-                            ${pedido.Estado === 'Completado' ?
-                    `<button class="btn-reseñar" data-id="${pedido.ID_Pedido}">⭐ Dejar reseña</button>` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        document.querySelectorAll('.btn-reseñar').forEach(btn => {
-            btn.addEventListener('click', () => mostrarModal('⭐', 'Próximamente', 'Funcionalidad de reseña en desarrollo'));
-        });
-    }
-
-    // ============================================
-    // ACTUALIZAR ESTADO DE PEDIDO (con modal)
-    // ============================================
-    async function actualizarEstadoPedido(id, nuevoEstado, origen) {
-        // Mostrar loading en el botón si se puede
-        try {
-            let url = `/pedidos/${id}/estado`;
-            let body = { nuevoEstado };
-
-            if (nuevoEstado === 'rechazar') {
-                url = `/pedidos/${id}/rechazar`;
-                body = {};
-            } else if (nuevoEstado === 'aprobado') {
-                url = `/pedidos/${id}/aprobar`;
-                body = {};
-            } else if (nuevoEstado === 'pagar') {
-                url = `/pedidos/${id}/pagar`;
-                body = {};
-            } else {
-                body = { nuevoEstado };
+            // Doble clic en fecha invierte orden
+            if (filter === currentMainFilter && filter === 'date') {
+                sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+                renderGrid();
+                return;
             }
 
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
+            currentMainFilter = filter;
+            setActiveMainChip(filter);
+            subfilterRow.style.display = 'none';
 
-            const data = await response.json();
-
-            if (response.ok) {
-                let mensaje = '';
-                let icono = '✅';
-                let titulo = '¡Éxito!';
-
-                switch (nuevoEstado) {
-                    case 'aprobado': mensaje = 'Pedido aprobado correctamente'; break;
-                    case 'rechazar': mensaje = 'Pedido rechazado correctamente'; icono = '❌'; titulo = 'Pedido Rechazado'; break;
-                    case 'En proceso': mensaje = 'Has iniciado el trabajo en este pedido'; break;
-                    case 'Revision': mensaje = 'Has enviado el trabajo a revisión'; break;
-                    case 'Completado': mensaje = '¡Has completado el pedido! El cliente podrá dejar una reseña'; icono = '🎉'; break;
-                    default: mensaje = data.msg || 'Estado actualizado correctamente';
-                }
-
-                mostrarModal(icono, titulo, mensaje);
-
-                if (origen === 'ventas') {
-                    // Recargar después de 800ms (más rápido)
-                    setTimeout(() => {
-                        renderizarVentas();
-                    }, 800);
-                }
-            } else {
-                mostrarModal('⚠️', 'Error', data.msg || 'No se pudo actualizar el estado', true);
-            }
-        } catch (err) {
-            console.error("Error:", err);
-            mostrarModal('⚠️', 'Error de conexión', 'No se pudo conectar con el servidor', true);
-        }
-    }
-
-    // ============================================
-    // MANEJADOR DE CHIPS PRINCIPALES
-    // ============================================
-    function handleMainChipClick() {
-        const filter = this.dataset.filter;
-
-        if (currentTab === 'publications') {
-            mainChips.forEach(chip => chip.classList.remove('active'));
-            this.classList.add('active');
-
-            if (filter === 'date') {
-                if (currentPublicationsSort === 'date') {
-                    publicationsSortOrder = publicationsSortOrder === 'desc' ? 'asc' : 'desc';
-                } else {
-                    currentPublicationsSort = 'date';
-                    publicationsSortOrder = 'desc';
-                }
-                currentPublicationsFilter = 'all';
-                subfilterRow.style.display = 'flex';
-                buildSubfilterChipsPublications();
-                renderPublications();
-            } else if (filter === 'categories') {
-                currentPublicationsSort = null;
-                currentPublicationsFilter = 'all';
+            if (filter === 'categories') {
+                currentSort = null;
                 subfilterRow.style.display = 'flex';
                 buildSubfilterChipsPublications();
                 renderPublications();
             } else if (filter === 'likes') {
-                currentPublicationsSort = 'likes';
-                currentPublicationsFilter = 'all';
-                subfilterRow.style.display = 'flex';
-                buildSubfilterChipsPublications();
-                renderPublications();
+                currentSort = 'likes';
+                renderGrid();
             }
-        }
-        else if (currentTab === 'sells') {
-            mainChips.forEach(chip => chip.classList.remove('active'));
-            this.classList.add('active');
+        });
+    });
 
-            if (filter === 'date') {
-                currentVentasSort = currentVentasSort === 'date' ? null : 'date';
-                subfilterRow.style.display = 'flex';
-                renderizarFiltrosCategoriasVentas();
-                renderizarVentas();
-            } else if (filter === 'categories') {
-                currentVentasSort = null;
-                currentVentasFilter = 'all';
-                subfilterRow.style.display = 'flex';
-                renderizarFiltrosCategoriasVentas();
-                renderizarVentas();
-            }
-        }
-        else if (currentTab === 'basket') {
-            mainChips.forEach(chip => chip.classList.remove('active'));
-            this.classList.add('active');
-
-            if (filter === 'date') {
-                currentComprasSort = currentComprasSort === 'date' ? null : 'date';
-                subfilterRow.style.display = 'flex';
-                renderizarFiltrosCategoriasCompras();
-                renderizarCompras();
-            } else if (filter === 'categories') {
-                currentComprasSort = null;
-                currentComprasFilter = 'all';
-                subfilterRow.style.display = 'flex';
-                renderizarFiltrosCategoriasCompras();
-                renderizarCompras();
-            }
-        }
-    }
-
-    // ============================================
-    // MANEJADORES DE TABS
-    // ============================================
-    async function setActiveTab(tab) {
+    // ----- TABS -----
+    function setActiveTab(tab) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
-
-        if (tab === tabPub) {
-            currentTab = 'publications';
-            subfilterRow.style.display = 'flex';
-            await cargarPublicaciones();
-        } else if (tab === tabSells) {
-            currentTab = 'sells';
-            currentVentasSort = null;
-            currentVentasFilter = 'all';
-            subfilterRow.style.display = 'flex';
-            await renderizarFiltrosCategoriasVentas();
-            await renderizarVentas();
-        } else if (tab === tabBasket) {
-            currentTab = 'basket';
-            currentComprasSort = null;
-            currentComprasFilter = 'all';
-            subfilterRow.style.display = 'flex';
-            await renderizarFiltrosCategoriasCompras();
-            await renderizarCompras();
-        }
+        currentTab = tab === tabPub ? 'publications' : tab === tabSells ? 'sells' : 'basket';
+        renderGrid();
     }
-
-
-    // ============================================
-    // INICIALIZACIÓN
-    // ============================================
-    mainChips.forEach(chip => {
-        chip.removeEventListener('click', handleMainChipClick);
-        chip.addEventListener('click', handleMainChipClick);
-    });
 
     tabPub.addEventListener('click', () => setActiveTab(tabPub));
     tabSells.addEventListener('click', () => setActiveTab(tabSells));

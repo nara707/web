@@ -1,5 +1,3 @@
-//Funcion para actualizar el navbar
-actualizarNavbar();// Navbar dinámico
 function actualizarNavbar() {
   const usuario = sessionStorage.getItem('usuario');
   const navLinks = document.querySelector('.nav-links');
@@ -10,8 +8,16 @@ function actualizarNavbar() {
       <a href="/landing#categorias">Categorías</a>
       <a href="/basket">Canasta</a>
       <a href="/mi-perfil">Perfil</a>
+      <span class="nav-logout" onclick="cerrarSesion()" title="Cerrar sesión">
+        <span class="material-symbols-outlined">logout</span>
+      </span>
     `;
   }
+}
+
+function cerrarSesion() {
+    sessionStorage.removeItem('usuario');
+    window.location.href = '/login';
 }
 
 // ── Estrellas ──
@@ -390,11 +396,22 @@ async function cargarPublicacion() {
     }
     
     // Ocultar botón de enviar mensaje si es arte propio
-    const btnmensaje = document.querySelector('.btn-mensaje');
-    if (btnmensaje && esPropio) {
-        btnmensaje.style.display = 'none';
-    }
-    
+   const btnmensaje = document.querySelector('.btn-mensaje');
+if (btnmensaje && esPropio) {
+    btnmensaje.style.display = 'none';
+} else if (btnmensaje) {
+    btnmensaje.onclick = async () => {
+        // Buscar si ya existe un pedido entre ambos para esta publicación
+        const res = await fetch(`/chat/conversaciones?id_usuario=${usuarioSesion.id}`);
+        const convs = await res.json();
+        const conv = convs.find(c => c.ID_Artista === pub.ID_Usuario_Artista);
+        if (conv) {
+            window.abrirChatDesdePedido(conv.ID_Pedido, pub.NombreArtista);
+        } else {
+            alert('Primero realiza una comisión para poder chatear con el artista.');
+        }
+    };
+}
     // ── Mostrar botón de editar si es el propietario ──
     const btnEditar = document.getElementById('btnEditar');
     if (btnEditar && esPropio) {
@@ -416,19 +433,67 @@ async function cargarPublicacion() {
         };
     }
 
-  } catch (err) {
+ // Cargar y mostrar reseñas
+await cargarResenas(id, pub.ID_Usuario_Artista);
+
+} catch (err) {
     console.error('Error al cargar publicación:', err);
   }
 }
 
+async function cargarResenas(idPublicacion, idArtista) {
+    try {
+        const res = await fetch(`/resenas/publicacion/${idPublicacion}`);
+        const resenas = await res.json();
 
+        // Crear sección de reseñas si no existe
+        let seccion = document.getElementById('seccion-resenas');
+        if (!seccion) {
+            seccion = document.createElement('div');
+            seccion.id = 'seccion-resenas';
+            seccion.style.cssText = 'margin-top:24px;';
+            document.querySelector('.artwork-right').appendChild(seccion);
+        }
+
+        if (!resenas.length) {
+            seccion.innerHTML = '<p style="color:#888;font-size:13px">Aún no hay reseñas para esta obra.</p>';
+            return;
+        }
+
+        const promedio = (resenas.reduce((s, r) => s + r.Puntuacion, 0) / resenas.length).toFixed(1);
+        const estrellasPromedio = '★'.repeat(Math.round(promedio)) + '☆'.repeat(5 - Math.round(promedio));
+
+        seccion.innerHTML = `
+            <div class="divider"></div>
+            <p class="block-label">Reseñas <span style="color:#e8d87a">${estrellasPromedio} ${promedio}</span></p>
+            <div id="lista-resenas">
+                ${resenas.map(r => `
+                    <div style="display:flex;gap:12px;margin-bottom:16px;align-items:flex-start">
+                        <div style="width:36px;height:36px;border-radius:50%;background:#b05ad033;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:18px">
+                            ${r.FotoCliente ? `<img src="${r.FotoCliente}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : '🌸'}
+                        </div>
+                        <div>
+                            <div style="font-weight:700;font-size:13px">${r.NombreCliente}</div>
+                            <div style="color:#e8d87a;font-size:14px">${'★'.repeat(r.Puntuacion)}${'☆'.repeat(5 - r.Puntuacion)}</div>
+                            ${r.Comentario ? `<p style="font-size:13px;color:#ccc;margin:4px 0 0">${r.Comentario}</p>` : ''}
+                            <div style="font-size:11px;color:#666;margin-top:4px">${new Date(r.Fecha_Reseña).toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (err) {
+        console.error('Error cargando reseñas:', err);
+    }
+}
 
 // ============================================
 // INICIALIZACIÓN
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
    console.log("🔍 btnGuardarEditar encontrado:", document.getElementById('btnGuardarEditar')); // ← agrega esto
-    cargarPublicacion();
+    actualizarNavbar(); 
+   cargarPublicacion();
     
     // Configurar eventos del modal de edición
     const btnCancelarEditar = document.getElementById('btnCancelarEditar');
