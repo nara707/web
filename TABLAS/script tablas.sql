@@ -112,7 +112,8 @@ CHANGE FechaNacimiento fecha_nacimiento DATE;
 
 
 select * from Usuario;
-select * from publicaciones;
+select * from Usuario;
+select * from mensajes_pedido;
 
 INSERT INTO categorias (Nombre) VALUES ('Ilustracion'), ('Moda'), ('Fotografia'), ('Diseño'), ('Tatuajes'),('Animacion'),('Diseño de Personajes') ;
 
@@ -123,4 +124,44 @@ ALTER TABLE publicaciones
 ADD COLUMN ID_Categoria INT,
 ADD COLUMN MetodoPago VARCHAR(50);
 
--- modificacion de la tabla de usuario y nuevas tablas relacionadas --
+
+-- inicio de sesion con google --
+ALTER TABLE usuario
+ADD COLUMN google_id VARCHAR(50) NULL AFTER Correo,
+ADD COLUMN foto_google TEXT NULL AFTER google_id,
+MODIFY COLUMN contrasena VARCHAR(255) NULL;  
+
+-- inicio de sesion con facebook --
+ALTER TABLE usuario
+ADD facebook_id VARCHAR(255),
+ADD foto_facebook LONGTEXT,
+MODIFY COLUMN foto_google LONGTEXT NULL;  
+
+DESCRIBE pedidos;
+SHOW COLUMNS FROM pedidos LIKE '%publicacion%';
+
+ALTER TABLE Pedidos ADD COLUMN ID_Publicacion INT NOT NULL AFTER ID_Artista;
+ALTER TABLE Pedidos ADD FOREIGN KEY (ID_Publicacion) REFERENCES Publicaciones(ID_Publicacion);
+
+CREATE TABLE usuario_tags (
+    ID_Tag INT AUTO_INCREMENT PRIMARY KEY,
+    ID_Usuario INT NOT NULL,
+    Nombre VARCHAR(50) NOT NULL,
+    FOREIGN KEY (ID_Usuario) REFERENCES usuario(ID_Usuario) ON DELETE CASCADE
+);
+
+select * from mensajes_pedido;
+select * from likes_publicacion;
+CREATE TABLE likes_publicacion (
+    ID_Like INT AUTO_INCREMENT PRIMARY KEY,
+    ID_Publicacion INT NOT NULL,
+    ID_Usuario INT NOT NULL,
+    FechaLike DATETIME DEFAULT NOW(),
+    UNIQUE KEY unique_like (ID_Publicacion, ID_Usuario),
+    FOREIGN KEY (ID_Publicacion) REFERENCES publicaciones(ID_Publicacion),
+    FOREIGN KEY (ID_Usuario) REFERENCES usuario(ID_Usuario)
+);
+
+ALTER TABLE mensajes_pedido
+MODIFY COLUMN Contenido TEXT NULL,
+MODIFY COLUMN Boceto_URL LONGTEXT NULL;
